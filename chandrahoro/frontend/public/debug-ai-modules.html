@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug AI Modules - ChandraHoro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .test-section {
+            margin: 24px 0;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        .success { color: #059669; }
+        .error { color: #dc2626; }
+        .info { color: #0369a1; }
+        .warning { color: #d97706; }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover {
+            background: #e55a2b;
+        }
+        pre {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .module-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 AI Modules Debug Tool</h1>
+            <p>Debug tool for troubleshooting AI module loading issues</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Quick Actions</h3>
+            <button onclick="testFeatureFlags()">Test Feature Flags</button>
+            <button onclick="testModuleRegistry()">Test Module Registry</button>
+            <button onclick="testModuleLoading()">Test Module Loading</button>
+            <button onclick="clearConsole()">Clear Console</button>
+            <button onclick="window.location.href='/chart/result'">Go to AI Insights</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Expected New Modules</h3>
+            <div class="module-card">
+                <strong>Daily Predictions</strong> - ID: daily-predictions, Priority: 8, Category: Prediction
+            </div>
+            <div class="module-card">
+                <strong>Yearly Predictions</strong> - ID: yearly-predictions, Priority: 9, Category: Prediction
+            </div>
+            <div class="module-card">
+                <strong>Prashna (Horary Astrology)</strong> - ID: prashna-horary, Priority: 10, Category: Prediction
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Test Results</h3>
+            <div id="testResults">
+                <p class="info">Click a test button above to run diagnostics...</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Browser Console</h3>
+            <p class="info">Open browser DevTools (F12) to see detailed console logs</p>
+            <div id="consoleOutput">
+                <pre>Console output will appear here...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        let consoleBuffer = [];
+        
+        function captureConsole(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            consoleBuffer.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateConsoleOutput();
+            
+            // Call original console method
+            if (type === 'log') originalLog(...args);
+            else if (type === 'error') originalError(...args);
+            else if (type === 'warn') originalWarn(...args);
+        }
+        
+        console.log = (...args) => captureConsole('log', ...args);
+        console.error = (...args) => captureConsole('error', ...args);
+        console.warn = (...args) => captureConsole('warn', ...args);
+        
+        function updateConsoleOutput() {
+            const output = document.getElementById('consoleOutput');
+            if (output) {
+                output.innerHTML = `<pre>${consoleBuffer.slice(-20).join('\n')}</pre>`;
+            }
+        }
+        
+        function clearConsole() {
+            consoleBuffer = [];
+            updateConsoleOutput();
+            document.getElementById('testResults').innerHTML = '<p class="info">Console cleared.</p>';
+        }
+        
+        function updateResults(html) {
+            document.getElementById('testResults').innerHTML = html;
+        }
+        
+        async function testFeatureFlags() {
+            updateResults('<p class="info">🔄 Testing feature flags...</p>');
+            
+            try {
+                // Test if we can access the feature flags
+                const response = await fetch('/api/ai/debug/feature-flags', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateResults(`<p class="success">✅ Feature flags loaded</p><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    // Fallback: check expected feature flags
+                    const expectedFlags = [
+                        'daily-predictions',
+                        'yearly-predictions', 
+                        'prashna-horary'
+                    ];
+                    
+                    updateResults(`
+                        <p class="warning">⚠️ Cannot fetch feature flags from API</p>
+                        <p class="info">Expected feature flags:</p>
+                        <ul>
+                            ${expectedFlags.map(flag => `<li>${flag}</li>`).join('')}
+                        </ul>
+                        <p class="info">Check that these are enabled in frontend/src/lib/ai/featureFlags.ts</p>
+                    `);
+                }
+            } catch (error) {
+                console.error('Feature flags test error:', error);
+                updateResults(`<p class="error">❌ Feature flags test failed: ${error.message}</p>`);
+            }
+        }
+        
+        async function testModuleRegistry() {
+            updateResults('<p class="info">🔄 Testing module registry...</p>');
+            
+            try {
+                const expectedModules = [
+                    'chart-interpretation',
+                    'dasha-predictions',
+                    'yoga-interpretations',
+                    'transit-analysis',
+                    'compatibility-analysis',
+                    'match-horoscope',
+                    'remedial-suggestions',
+                    'personality-insights',
+                    'career-guidance',
+                    'relationship-insights',
+                    'health-indicators',
+                    'daily-predictions',
+                    'yearly-predictions',
+                    'prashna-horary'
+                ];
+                
+                updateResults(`
+                    <p class="success">✅ Expected modules in registry:</p>
+                    <ul>
+                        ${expectedModules.map(module => `<li>${module}</li>`).join('')}
+                    </ul>
+                    <p class="info">Total: ${expectedModules.length} modules</p>
+                    <p class="info">New modules: daily-predictions, yearly-predictions, prashna-horary</p>
+                `);
+                
+            } catch (error) {
+                console.error('Module registry test error:', error);
+                updateResults(`<p class="error">❌ Module registry test failed: ${error.message}</p>`);
+            }
+        }
+        
+        async function testModuleLoading() {
+            updateResults('<p class="info">🔄 Testing module loading...</p>');
+            
+            try {
+                // Simulate the module loading process
+                console.log('Starting module loading test...');
+                
+                const testContext = {
+                    chartData: { /* mock chart data */ },
+                    user: { id: 'test-user', role: 'user' },
+                    enabledFlags: []
+                };
+                
+                console.log('Test context:', testContext);
+                
+                // Check if we're on the right page
+                const currentPath = window.location.pathname;
+                console.log('Current path:', currentPath);
+                
+                updateResults(`
+                    <p class="info">📍 Module loading test initiated</p>
+                    <p class="info">Current path: ${currentPath}</p>
+                    <p class="info">Check browser console for detailed logs</p>
+                    <p class="warning">⚠️ To see actual module loading, navigate to:</p>
+                    <ul>
+                        <li><a href="/chart/result" target="_blank">Chart Result Page (AI Insights tab)</a></li>
+                        <li><a href="/ai-insights" target="_blank">AI Insights Page</a></li>
+                    </ul>
+                    <p class="info">Look for any error messages in the browser console</p>
+                `);
+                
+            } catch (error) {
+                console.error('Module loading test error:', error);
+                updateResults(`<p class="error">❌ Module loading test failed: ${error.message}</p>`);
+            }
+        }
+        
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            console.log('🔍 AI Modules Debug Tool loaded');
+            console.log('Frontend server:', window.location.origin);
+            console.log('Expected backend:', 'http://localhost:8000');
+            
+            // Test basic browser capabilities
+            console.log('Browser supports ES6 modules:', 'import' in document.createElement('script'));
+            console.log('Browser supports fetch:', typeof fetch !== 'undefined');
+            console.log('Browser supports async/await:', (async () => {})().constructor.name === 'AsyncFunction');
+        });
+    </script>
+</body>
+</html>

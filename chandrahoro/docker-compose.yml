@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: chandrahoro-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: chandrahoro
+      MYSQL_USER: chandrahoro_user
+      MYSQL_PASSWORD: chandrahoro_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - chandrahoro-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: chandrahoro-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 5
+    networks:
+      - chandrahoro-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chandrahoro-backend
+    environment:
+      DATABASE_URL: mysql+aiomysql://chandrahoro_user:chandrahoro_password@mysql:3306/chandrahoro
+      SYNC_DATABASE_URL: mysql+pymysql://chandrahoro_user:chandrahoro_password@mysql:3306/chandrahoro
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ""
+      PERPLEXITY_API_KEY: your_perplexity_api_key_here
+      GEONAMES_USERNAME: drtravi
+      ENVIRONMENT: development
+      DEBUG: "true"
+      BACKEND_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - chandrahoro-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chandrahoro-frontend
+    environment:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: WD6uzkgbLKMsJWxc5ZG+BelEyNrdqB8Rqqb68PFpeNk=
+      JWT_SECRET: QHDk25Ge8ye1//+Rpy93jsXMNltPUIMbyPDdAhgpqEA=
+      DATABASE_URL: mysql://chandrahoro_user:chandrahoro_password@mysql:3306/chandrahoro
+      PERPLEXITY_API_KEY: your_perplexity_api_key_here
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - mysql
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - chandrahoro-network
+    command: npm run dev
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  chandrahoro-network:
+    driver: bridge
+

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Chart Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Chart Data Debug Tool</h1>
+    
+    <div class="section">
+        <h2>Current SessionStorage Data</h2>
+        <button onclick="checkSessionStorage()">Check SessionStorage</button>
+        <div id="sessionData"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test Chart Generation</h2>
+        <button onclick="testChartGeneration()">Test Chart API Call</button>
+        <div id="testResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Navigate to Result Page</h2>
+        <button onclick="goToResult()">Go to Chart Result</button>
+    </div>
+
+    <script>
+        function checkSessionStorage() {
+            const chartData = sessionStorage.getItem('chartData');
+            const birthDetails = sessionStorage.getItem('birthDetails');
+            const preferences = sessionStorage.getItem('chartPreferences');
+            
+            let html = '<h3>SessionStorage Contents:</h3>';
+            
+            if (chartData) {
+                try {
+                    const parsed = JSON.parse(chartData);
+                    html += '<h4>Chart Data:</h4>';
+                    html += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<p class="error">Chart Data: Invalid JSON - ' + e.message + '</p>';
+                }
+            } else {
+                html += '<p class="error">No chart data found</p>';
+            }
+            
+            if (birthDetails) {
+                try {
+                    const parsed = JSON.parse(birthDetails);
+                    html += '<h4>Birth Details:</h4>';
+                    html += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<p class="error">Birth Details: Invalid JSON - ' + e.message + '</p>';
+                }
+            } else {
+                html += '<p class="error">No birth details found</p>';
+            }
+            
+            if (preferences) {
+                try {
+                    const parsed = JSON.parse(preferences);
+                    html += '<h4>Chart Preferences:</h4>';
+                    html += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<p class="error">Preferences: Invalid JSON - ' + e.message + '</p>';
+                }
+            } else {
+                html += '<p class="error">No preferences found</p>';
+            }
+            
+            document.getElementById('sessionData').innerHTML = html;
+        }
+
+        async function testChartGeneration() {
+            // Test with real API call using authentication token
+            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MWNhYzIyMi03ZjI1LTQyYTctYTRlYi1iZDA3NWJiN2E5ZmIiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjE1NjkyNDIsInR5cGUiOiJhY2Nlc3MifQ.sP7XFnwJHGKhcFCIixaSHalOXltIEvXXNwFk2_vBCbs";
+
+            const testData = {
+                birth_details: {
+                    name: "Test User",
+                    date: "1990-01-15",
+                    time: "14:30",
+                    time_unknown: false,
+                    latitude: 28.6139,
+                    longitude: 77.2090,
+                    timezone: "Asia/Kolkata",
+                    location_name: "New Delhi, India"
+                },
+                preferences: {
+                    ayanamsha: "Lahiri",
+                    house_system: "Whole Sign",
+                    chart_style: "North Indian",
+                    divisional_charts: ["D1", "D9", "D10"],
+                    enable_ai: false
+                }
+            };
+
+            try {
+                document.getElementById('testResult').innerHTML = '<p class="info">Making real API call...</p>';
+
+                const response = await fetch('http://localhost:8000/api/v1/chart/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    // Store the data exactly as the home page should
+                    sessionStorage.setItem('chartData', JSON.stringify(result.data));
+                    sessionStorage.setItem('birthDetails', JSON.stringify(testData.birth_details));
+                    sessionStorage.setItem('chartPreferences', JSON.stringify(testData.preferences));
+
+                    document.getElementById('testResult').innerHTML =
+                        '<p class="success">✅ Real chart data generated and stored successfully!</p>' +
+                        '<p class="info">Chart data keys: ' + Object.keys(result.data).join(', ') + '</p>' +
+                        '<p class="info">Ascendant: ' + result.data.ascendant_sign + ' (' + result.data.ascendant.toFixed(2) + '°)</p>' +
+                        '<p class="info">Planets: ' + result.data.planets.length + ' planets calculated</p>' +
+                        '<p class="info">Now you can navigate to the result page to test the display.</p>';
+                } else {
+                    document.getElementById('testResult').innerHTML =
+                        '<p class="error">❌ Chart generation failed</p>' +
+                        '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('testResult').innerHTML =
+                    '<p class="error">❌ Error: ' + error.message + '</p>' +
+                    '<p class="info">Falling back to mock data...</p>';
+
+                // Fallback to mock data if API fails
+                const mockChartData = {
+                    birth_info: testData.birth_details,
+                    preferences: testData.preferences,
+                    ascendant: 120.90,
+                    ascendant_sign: "Leo",
+                    ayanamsha_value: 23.72,
+                    planets: [
+                        { name: "Sun", sign: "Capricorn", degree: 1.47, nakshatra: "Uttara Ashadha", pada: 2, house: 7, retrograde: false },
+                        { name: "Moon", sign: "Leo", degree: 25.08, nakshatra: "Purva Phalguni", pada: 4, house: 2, retrograde: false },
+                        { name: "Mercury", sign: "Sagittarius", degree: 17.55, nakshatra: "Purva Ashadha", pada: 2, house: 6, retrograde: true },
+                        { name: "Venus", sign: "Capricorn", degree: 6.91, nakshatra: "Uttara Ashadha", pada: 4, house: 7, retrograde: true },
+                        { name: "Mars", sign: "Scorpio", degree: 26.27, nakshatra: "Jyeshtha", pada: 3, house: 5, retrograde: false },
+                        { name: "Jupiter", sign: "Gemini", degree: 9.64, nakshatra: "Ardra", pada: 1, house: 12, retrograde: true },
+                        { name: "Saturn", sign: "Sagittarius", degree: 23.61, nakshatra: "Purva Ashadha", pada: 4, house: 6, retrograde: false }
+                    ],
+                    houses: [],
+                    calculation_timestamp: new Date().toISOString(),
+                    divisional_charts: { D1: {}, D9: {}, D10: {} },
+                    dasha_navigator: {},
+                    current_dasha: {},
+                    yogas: [],
+                    aspects: [],
+                    shadbala: {},
+                    ashtakavarga: {}
+                };
+
+                sessionStorage.setItem('chartData', JSON.stringify(mockChartData));
+                sessionStorage.setItem('birthDetails', JSON.stringify(testData.birth_details));
+                sessionStorage.setItem('chartPreferences', JSON.stringify(testData.preferences));
+
+                document.getElementById('testResult').innerHTML +=
+                    '<p class="success">✅ Mock chart data stored as fallback!</p>';
+            }
+            const mockChartData = {
+                birth_info: {
+                    name: "Test User",
+                    date: "1990-01-15",
+                    time: "14:30",
+                    time_unknown: false,
+                    latitude: 28.6139,
+                    longitude: 77.2090,
+                    timezone: "Asia/Kolkata",
+                    location_name: "New Delhi, India"
+                },
+                preferences: {
+                    ayanamsha: "Lahiri",
+                    house_system: "Whole Sign",
+                    chart_style: "North Indian",
+                    divisional_charts: ["D1", "D9", "D10"],
+                    enable_ai: false
+                },
+                ascendant: 125.75,
+                ascendant_sign: "Leo",
+                ayanamsha_value: 24.12,
+                planets: [
+                    {
+                        name: "Sun",
+                        sign: "Capricorn",
+                        degree: 25.45,
+                        nakshatra: "Dhanishta",
+                        pada: 2,
+                        house: 6,
+                        retrograde: false
+                    },
+                    {
+                        name: "Moon",
+                        sign: "Virgo",
+                        degree: 12.30,
+                        nakshatra: "Hasta",
+                        pada: 1,
+                        house: 2,
+                        retrograde: false
+                    },
+                    {
+                        name: "Mars",
+                        sign: "Scorpio",
+                        degree: 8.15,
+                        nakshatra: "Anuradha",
+                        pada: 3,
+                        house: 4,
+                        retrograde: false
+                    },
+                    {
+                        name: "Mercury",
+                        sign: "Sagittarius",
+                        degree: 18.90,
+                        nakshatra: "Purva Ashadha",
+                        pada: 4,
+                        house: 5,
+                        retrograde: false
+                    },
+                    {
+                        name: "Jupiter",
+                        sign: "Gemini",
+                        degree: 3.25,
+                        nakshatra: "Mrigashira",
+                        pada: 1,
+                        house: 11,
+                        retrograde: true
+                    },
+                    {
+                        name: "Venus",
+                        sign: "Aquarius",
+                        degree: 14.60,
+                        nakshatra: "Shatabhisha",
+                        pada: 2,
+                        house: 7,
+                        retrograde: false
+                    },
+                    {
+                        name: "Saturn",
+                        sign: "Capricorn",
+                        degree: 29.80,
+                        nakshatra: "Uttara Ashadha",
+                        pada: 4,
+                        house: 6,
+                        retrograde: false
+                    }
+                ],
+                houses: [
+                    { number: 1, cusp_longitude: 125.75, sign: "Leo", degree_in_sign: 5.75 },
+                    { number: 2, cusp_longitude: 155.75, sign: "Virgo", degree_in_sign: 5.75 },
+                    { number: 3, cusp_longitude: 185.75, sign: "Libra", degree_in_sign: 5.75 },
+                    { number: 4, cusp_longitude: 215.75, sign: "Scorpio", degree_in_sign: 5.75 },
+                    { number: 5, cusp_longitude: 245.75, sign: "Sagittarius", degree_in_sign: 5.75 },
+                    { number: 6, cusp_longitude: 275.75, sign: "Capricorn", degree_in_sign: 5.75 },
+                    { number: 7, cusp_longitude: 305.75, sign: "Aquarius", degree_in_sign: 5.75 },
+                    { number: 8, cusp_longitude: 335.75, sign: "Pisces", degree_in_sign: 5.75 },
+                    { number: 9, cusp_longitude: 5.75, sign: "Aries", degree_in_sign: 5.75 },
+                    { number: 10, cusp_longitude: 35.75, sign: "Taurus", degree_in_sign: 5.75 },
+                    { number: 11, cusp_longitude: 65.75, sign: "Gemini", degree_in_sign: 5.75 },
+                    { number: 12, cusp_longitude: 95.75, sign: "Cancer", degree_in_sign: 5.75 }
+                ],
+                calculation_timestamp: new Date().toISOString(),
+                divisional_charts: {
+                    D1: { name: "Rashi", planets: [] },
+                    D9: { name: "Navamsa", planets: [] },
+                    D10: { name: "Dasamsa", planets: [] }
+                },
+                dasha_navigator: {
+                    current_mahadasha: { planet: "Jupiter", start_date: "2020-01-15", end_date: "2036-01-15" },
+                    current_antardasha: { planet: "Saturn", start_date: "2023-06-15", end_date: "2026-04-15" }
+                },
+                current_dasha: {
+                    mahadasha: { planet: "Jupiter", start_date: "2020-01-15", end_date: "2036-01-15" },
+                    antardasha: { planet: "Saturn", start_date: "2023-06-15", end_date: "2026-04-15" }
+                },
+                yogas: [
+                    {
+                        name: "Gaja Kesari Yoga",
+                        type: "Beneficial",
+                        strength: "Strong",
+                        description: "Moon and Jupiter in mutual kendras",
+                        planets_involved: ["Moon", "Jupiter"],
+                        effects: "Wisdom, prosperity, and good fortune"
+                    }
+                ],
+                aspects: [],
+                shadbala: {},
+                ashtakavarga: {}
+            };
+
+            const testBirthDetails = {
+                name: "Test User",
+                date: "1990-01-15",
+                time: "14:30",
+                time_unknown: false,
+                latitude: 28.6139,
+                longitude: 77.2090,
+                timezone: "Asia/Kolkata",
+                location_name: "New Delhi, India"
+            };
+
+            const testPreferences = {
+                ayanamsha: "Lahiri",
+                house_system: "Whole Sign",
+                chart_style: "North Indian",
+                divisional_charts: ["D1", "D9", "D10"],
+                enable_ai: false
+            };
+
+            try {
+                document.getElementById('testResult').innerHTML = '<p class="info">Simulating chart generation with mock data...</p>';
+
+                // Store the data exactly as the home page should
+                sessionStorage.setItem('chartData', JSON.stringify(mockChartData));
+                sessionStorage.setItem('birthDetails', JSON.stringify(testBirthDetails));
+                sessionStorage.setItem('chartPreferences', JSON.stringify(testPreferences));
+
+                document.getElementById('testResult').innerHTML =
+                    '<p class="success">✅ Mock chart data generated and stored successfully!</p>' +
+                    '<p class="info">Chart data structure:</p>' +
+                    '<pre>' + JSON.stringify(mockChartData, null, 2).substring(0, 1000) + '...</pre>' +
+                    '<p class="info">Now you can navigate to the result page to test the display.</p>';
+
+            } catch (error) {
+                document.getElementById('testResult').innerHTML =
+                    '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        function goToResult() {
+            window.location.href = '/chart/result';
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            checkSessionStorage();
+        };
+    </script>
+</body>
+</html>

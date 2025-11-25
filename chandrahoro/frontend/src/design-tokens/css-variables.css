@@ -1,0 +1,258 @@
+/**
+ * Design Token CSS Variables
+ * Generated from tokens.json
+ * Light mode and dark mode variants
+ */
+
+/* ========================================================================== */
+/* LIGHT MODE - ROOT VARIABLES */
+/* ========================================================================== */
+
+:root {
+  /* Primary Colors */
+  --color-primary-saffron: #FF6B35;
+  --color-primary-gold: #F7931E;
+  --color-primary-marigold: #FDB827;
+
+  /* Celestial Colors */
+  --color-celestial-deep: #1E3A5F;
+  --color-celestial-medium: #2E5C8A;
+  --color-celestial-light: #4A7BA7;
+
+  /* Neutral Colors */
+  --color-neutral-white: #FFFFFF;
+  --color-neutral-cream: #FFF8F0;
+  --color-neutral-sand: #F5E6D3;
+  --color-neutral-stone: #9E9E9E;
+  --color-neutral-charcoal: #333333;
+  --color-neutral-black: #000000;
+
+  /* Semantic Colors */
+  --color-semantic-success: #4CAF50;
+  --color-semantic-warning: #FF9800;
+  --color-semantic-danger: #F44336;
+  --color-semantic-info: #2196F3;
+
+  /* Typography */
+  --font-display: Poppins, 'Noto Sans Telugu', sans-serif;
+  --font-body: Inter, 'Noto Sans Telugu', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-telugu: 'Noto Sans Telugu', 'Tiro Telugu', sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.563rem;
+  --font-size-2xl: 1.953rem;
+  --font-size-3xl: 2.441rem;
+  --font-size-4xl: 3.052rem;
+  --font-size-5xl: 3.815rem;
+
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* Animation */
+  --animation-duration-fast: 150ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+
+  --animation-easing-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --animation-easing-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --animation-easing-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================================================== */
+/* DARK MODE - OVERRIDES */
+/* ========================================================================== */
+
+.dark {
+  /* Dark Mode Colors */
+  --color-dark-background: #0A0E1A;
+  --color-dark-surface: #1A1F35;
+  --color-dark-surface-elevated: #252B42;
+  --color-dark-text-primary: #E8E8E8;
+  --color-dark-text-secondary: #A0A0A0;
+  --color-dark-border: #2A3045;
+
+  /* Adjust primary colors for dark mode */
+  --color-primary-saffron: #FF7A4D;
+  --color-primary-gold: #FFA530;
+  --color-primary-marigold: #FFC93F;
+
+  /* Adjust neutral colors for dark mode */
+  --color-neutral-cream: #1A1F35;
+  --color-neutral-sand: #252B42;
+  --color-neutral-stone: #6B7280;
+  --color-neutral-charcoal: #E8E8E8;
+}
+
+/* ========================================================================== */
+/* UTILITY CLASSES */
+/* ========================================================================== */
+
+/* Text utilities */
+.text-primary {
+  color: var(--color-neutral-charcoal);
+}
+
+.dark .text-primary {
+  color: var(--color-dark-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-neutral-stone);
+}
+
+.dark .text-secondary {
+  color: var(--color-dark-text-secondary);
+}
+
+/* Background utilities */
+.bg-primary {
+  background-color: var(--color-primary-saffron);
+}
+
+.bg-surface {
+  background-color: var(--color-neutral-white);
+}
+
+.dark .bg-surface {
+  background-color: var(--color-dark-surface);
+}
+
+/* Border utilities */
+.border-primary {
+  border-color: var(--color-primary-saffron);
+}
+
+.border-secondary {
+  border-color: var(--color-neutral-sand);
+}
+
+.dark .border-secondary {
+  border-color: var(--color-dark-border);
+}
+
+/* Shadow utilities */
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-ease-out);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--animation-duration-normal) var(--animation-easing-ease-out);
+}
+
+.animate-slide-down {
+  animation: slideDown var(--animation-duration-normal) var(--animation-easing-ease-out);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--animation-duration-normal) var(--animation-easing-ease-out);
+}
+

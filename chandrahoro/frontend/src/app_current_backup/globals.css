@@ -1,0 +1,584 @@
+/**
+ * Global Styles for ChandraHoro V2.1
+ * 
+ * This file contains global CSS styles, Tailwind CSS imports,
+ * and custom design system tokens following the visual design guide.
+ * 
+ * @author ChandraHoro Development Team
+ * @version 2.1.0
+ */
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ========================================
+   CSS Custom Properties for Design System
+   ======================================== */
+@layer base {
+  :root {
+    /* ========================================
+       Semantic Colors - Light Mode (ChandraHoro)
+       ======================================== */
+    --background: 30 100% 97%;
+    --foreground: 0 0% 20%;
+    --card: 30 49% 93%;
+    --card-foreground: 0 0% 20%;
+    --popover: 30 100% 97%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 18 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 51% 35%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 30 80% 92%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 38 98% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 30 80% 92%;
+    --input: 30 80% 92%;
+    --ring: 18 100% 60%;
+    --radius: 0.5rem;
+
+    /* ========================================
+       ChandraHoro Brand Colors - Light Mode
+       ======================================== */
+
+    /* Primary Palette - Saffron & Mandala */
+    --saffron: 18 100% 60%; /* #FF6B35 */
+    --saffron-foreground: 0 0% 100%;
+    --gold: 38 98% 50%; /* #F7931E */
+    --marigold: 40 99% 53%; /* #FDB827 */
+
+    /* Celestial Blues */
+    --celestial-deep: 210 56% 24%; /* #1E3A5F */
+    --celestial-medium: 210 51% 35%; /* #2E5C8A */
+    --celestial-light: 210 40% 85%;
+
+    /* Neutral Colors */
+    --neutral-white: 0 0% 100%;
+    --neutral-cream: 30 100% 97%;
+    --neutral-sand: 30 80% 92%;
+    --neutral-stone: 0 0% 62%;
+    --neutral-charcoal: 0 0% 20%;
+    --neutral-black: 0 0% 0%;
+
+    /* Semantic Colors */
+    --success: 120 61% 50%;
+    --warning: 39 89% 50%;
+    --danger: 0 84% 60%;
+    --info: 207 89% 60%;
+
+    /* ========================================
+       Typography Scale
+       ======================================== */
+    --font-sans: var(--font-inter);
+    --font-heading: var(--font-poppins);
+    --font-mono: "JetBrains Mono", "Courier New", monospace;
+    --font-telugu: var(--font-noto-sans-telugu);
+
+    /* ========================================
+       Spacing Scale (8px grid)
+       ======================================== */
+    --spacing-xs: 0.25rem; /* 4px */
+    --spacing-sm: 0.5rem;  /* 8px */
+    --spacing-md: 1rem;    /* 16px */
+    --spacing-lg: 1.5rem;  /* 24px */
+    --spacing-xl: 2rem;    /* 32px */
+    --spacing-2xl: 3rem;   /* 48px */
+
+    /* ========================================
+       Border Radius Scale
+       ======================================== */
+    --radius-sm: 4px;      /* Buttons, inputs */
+    --radius-md: 8px;      /* Cards (default) */
+    --radius-lg: 16px;     /* Modals, panels */
+    --radius-xl: 24px;     /* Hero sections */
+    --radius-full: 9999px; /* Pills, avatars */
+
+    /* ========================================
+       Animation Durations
+       ======================================== */
+    --duration-fast: 150ms;
+    --duration-normal: 300ms;
+    --duration-slow: 500ms;
+  }
+
+  .dark {
+    /* ========================================
+       Semantic Colors - Dark Mode (ChandraHoro)
+       ======================================== */
+    --background: 222 60% 6%;
+    --foreground: 0 0% 91%;
+    --card: 222 50% 11%;
+    --card-foreground: 0 0% 91%;
+    --popover: 222 60% 6%;
+    --popover-foreground: 0 0% 91%;
+    --primary: 18 100% 65%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 210 51% 45%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 40% 16%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 38 98% 58%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 222 40% 16%;
+    --input: 222 40% 16%;
+    --ring: 18 100% 65%;
+
+    /* ========================================
+       ChandraHoro Brand Colors - Dark Mode
+       ======================================== */
+
+    /* Adjust brand colors for dark mode */
+    --saffron: 18 100% 65%; /* Slightly lighter in dark mode */
+    --gold: 38 98% 58%;
+    --marigold: 40 99% 60%;
+
+    /* Celestial Blues - Adjusted for dark mode */
+    --celestial-deep: 210 56% 35%;
+    --celestial-medium: 210 51% 45%;
+    --celestial-light: 210 40% 25%;
+
+    /* Dark Mode Specific Colors */
+    --dark-bg: 222 60% 6%; /* #0A0E1A */
+    --dark-surface: 222 50% 11%; /* #1A1F35 */
+    --dark-surface-elevated: 222 45% 15%; /* #252B42 */
+    --dark-text-primary: 0 0% 91%; /* #E8E8E8 */
+    --dark-text-secondary: 0 0% 63%; /* #A0A0A0 */
+    --dark-border: 222 40% 16%; /* #2A3045 */
+  }
+}
+
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Typography Styles */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-semibold tracking-tight;
+  }
+  
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+  
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+  
+  h4 {
+    @apply text-xl lg:text-2xl;
+  }
+  
+  h5 {
+    @apply text-lg lg:text-xl;
+  }
+  
+  h6 {
+    @apply text-base lg:text-lg;
+  }
+  
+  /* Focus Styles for Accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-saffron ring-offset-2 ring-offset-background;
+  }
+  
+  /* Smooth Scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+/* Component Styles */
+@layer components {
+  /* Button Variants */
+  .btn-saffron {
+    @apply bg-saffron text-saffron-foreground hover:bg-saffron/90 focus:ring-saffron;
+  }
+  
+  .btn-celestial {
+    @apply bg-celestial-deep text-white hover:bg-celestial-medium focus:ring-celestial-deep;
+  }
+  
+  /* Card Styles */
+  .card-elevated {
+    @apply shadow-lg hover:shadow-xl transition-shadow duration-300;
+  }
+  
+  /* Animation Classes */
+  .animate-fade-in {
+    animation: fadeIn var(--duration-normal) ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp var(--duration-normal) ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn var(--duration-fast) ease-out;
+  }
+  
+  /* Loading States */
+  .loading-skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Text Utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+@layer utilities {
+  /* ========================================
+     Spacing Utilities
+     ======================================== */
+  .space-grid {
+    @apply space-y-4 md:space-y-6 lg:space-y-8;
+  }
+
+  /* ========================================
+     Container Utilities
+     ======================================== */
+  .container-narrow {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-full {
+    @apply w-full px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ========================================
+     Gradient Utilities
+     ======================================== */
+  .gradient-sunset {
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  }
+
+  .gradient-night-sky {
+    background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%);
+  }
+
+  .gradient-twilight {
+    background: linear-gradient(135deg, #4A7BA7 0%, #9C88FF 100%);
+  }
+
+  .gradient-cosmic {
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  }
+
+  .gradient-saffron {
+    background: linear-gradient(135deg, hsl(var(--saffron)) 0%, hsl(var(--saffron)) 100%);
+  }
+
+  .gradient-celestial {
+    background: linear-gradient(135deg, hsl(var(--celestial-deep)) 0%, hsl(var(--celestial-medium)) 100%);
+  }
+
+  /* ========================================
+     Text Utilities
+     ======================================== */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* ========================================
+     Elevation Utilities
+     ======================================== */
+  .elevation-sm {
+    @apply shadow-sm;
+  }
+
+  .elevation-md {
+    @apply shadow-md;
+  }
+
+  .elevation-lg {
+    @apply shadow-lg;
+  }
+
+  .elevation-xl {
+    @apply shadow-xl;
+  }
+
+  /* ========================================
+     Glow Effects
+     ======================================== */
+  .glow-saffron {
+    @apply shadow-glow-saffron;
+  }
+
+  .glow-celestial {
+    @apply shadow-glow-celestial;
+  }
+
+  /* ========================================
+     Backdrop Effects
+     ======================================== */
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/10 dark:bg-black/20;
+  }
+
+  .glass-effect-strong {
+    @apply backdrop-blur-lg bg-white/20 dark:bg-black/30;
+  }
+}
+
+/* ========================================
+   Custom Animations & Keyframes
+   ======================================== */
+
+/* Fade Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Slide Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale Animations */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Pulse Animation (for notifications) */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Shimmer Animation (for loading states) */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+/* Orbit Animation (for planet animations) */
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Bounce Animations */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    @apply text-black bg-white;
+  }
+  
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  .print-break-after {
+    page-break-after: always;
+  }
+}
+
+/* ========================================
+   Custom Animations for State Components
+   ======================================== */
+
+/* Shimmer Animation for Skeleton Loaders */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Orbital Spinner Animation */
+@keyframes orbital-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-orbital {
+  animation: orbital-spin 1s linear infinite;
+}
+
+/* Pulse Animation for Loading States */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Bounce Animation with Staggered Delays */
+.animate-bounce-1 {
+  animation: bounce 1s infinite;
+  animation-delay: -0.32s;
+}
+
+.animate-bounce-2 {
+  animation: bounce 1s infinite;
+  animation-delay: -0.16s;
+}
+
+.animate-bounce-3 {
+  animation: bounce 1s infinite;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-shimmer,
+  .animate-orbital,
+  .animate-pulse-glow,
+  .animate-bounce-1,
+  .animate-bounce-2,
+  .animate-bounce-3 {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Insights Tab - ChandraHoro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        button {
+            background: #f46a1f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #e55a0f;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 AI Insights Tab Test Suite</h1>
+    <p>This page tests the AI Insights tab functionality in ChandraHoro V2.1</p>
+
+    <div class="test-section">
+        <h2>📋 Test Setup</h2>
+        <button onclick="setupTestData()">Setup Test Chart Data</button>
+        <button onclick="clearTestData()">Clear Test Data</button>
+        <button onclick="checkCurrentData()">Check Current Data</button>
+        <div id="setupResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Navigation Tests</h2>
+        <button onclick="testDirectNavigation()">Test Direct Navigation to /chart/result</button>
+        <button onclick="testWithChartData()">Test with Chart Data Present</button>
+        <div id="navigationResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 AI Module Tests</h2>
+        <button onclick="testModuleLoading()">Test Module Loading</button>
+        <button onclick="testModuleFiltering()">Test Module Filtering</button>
+        <div id="moduleResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Current Status</h2>
+        <div id="statusResult">Click "Check Current Data" to see status</div>
+    </div>
+
+    <script>
+        function setupTestData() {
+            const testChartData = {
+                birth_info: {
+                    name: "Test User",
+                    date: "1990-01-15",
+                    time: "14:30",
+                    time_unknown: false,
+                    latitude: 28.6139,
+                    longitude: 77.2090,
+                    timezone: "Asia/Kolkata",
+                    location_name: "New Delhi, India"
+                },
+                preferences: {
+                    ayanamsha: "Lahiri",
+                    house_system: "Whole Sign",
+                    chart_style: "North Indian",
+                    divisional_charts: ["D1", "D9", "D10"],
+                    enable_ai: true
+                },
+                ascendant: 120.90,
+                ascendant_sign: "Leo",
+                ayanamsha_value: 23.72,
+                planets: [
+                    { name: "Sun", sign: "Capricorn", degree: 1.47, nakshatra: "Uttara Ashadha", pada: 2, house: 7, retrograde: false },
+                    { name: "Moon", sign: "Leo", degree: 25.08, nakshatra: "Purva Phalguni", pada: 4, house: 2, retrograde: false },
+                    { name: "Mercury", sign: "Sagittarius", degree: 17.55, nakshatra: "Purva Ashadha", pada: 2, house: 6, retrograde: true },
+                    { name: "Venus", sign: "Capricorn", degree: 6.91, nakshatra: "Uttara Ashadha", pada: 4, house: 7, retrograde: true },
+                    { name: "Mars", sign: "Scorpio", degree: 26.27, nakshatra: "Jyeshtha", pada: 3, house: 5, retrograde: false },
+                    { name: "Jupiter", sign: "Gemini", degree: 9.64, nakshatra: "Ardra", pada: 1, house: 12, retrograde: true },
+                    { name: "Saturn", sign: "Sagittarius", degree: 23.61, nakshatra: "Purva Ashadha", pada: 4, house: 6, retrograde: false }
+                ],
+                houses: [],
+                calculation_timestamp: new Date().toISOString(),
+                divisional_charts: { D1: {}, D9: {}, D10: {} },
+                dasha_navigator: {},
+                current_dasha: { mahadasha: "Venus", antardasha: "Sun" },
+                yogas: [
+                    { name: "Gaja Kesari Yoga", strength: "Strong", description: "Jupiter and Moon in favorable positions" }
+                ],
+                aspects: [],
+                shadbala: {},
+                ashtakavarga: {}
+            };
+
+            const testBirthDetails = {
+                name: "Test User",
+                date: "1990-01-15",
+                time: "14:30",
+                time_unknown: false,
+                latitude: 28.6139,
+                longitude: 77.2090,
+                timezone: "Asia/Kolkata",
+                location_name: "New Delhi, India"
+            };
+
+            const testPreferences = {
+                ayanamsha: "Lahiri",
+                house_system: "Whole Sign",
+                chart_style: "North Indian",
+                divisional_charts: ["D1", "D9", "D10"],
+                enable_ai: true
+            };
+
+            // Store in sessionStorage (primary)
+            sessionStorage.setItem('chartData', JSON.stringify(testChartData));
+            sessionStorage.setItem('birthDetails', JSON.stringify(testBirthDetails));
+            sessionStorage.setItem('chartPreferences', JSON.stringify(testPreferences));
+
+            // Also store in localStorage (fallback)
+            localStorage.setItem('chartData', JSON.stringify(testChartData));
+            localStorage.setItem('birthDetails', JSON.stringify(testBirthDetails));
+            localStorage.setItem('chartPreferences', JSON.stringify(testPreferences));
+
+            document.getElementById('setupResult').innerHTML = 
+                '<p class="success">✅ Test chart data has been set up successfully!</p>' +
+                '<p class="info">Chart data stored in both sessionStorage and localStorage</p>' +
+                '<p class="info">Chart: Leo Ascendant, Venus Mahadasha, 7 planets calculated</p>';
+        }
+
+        function clearTestData() {
+            sessionStorage.removeItem('chartData');
+            sessionStorage.removeItem('birthDetails');
+            sessionStorage.removeItem('chartPreferences');
+            localStorage.removeItem('chartData');
+            localStorage.removeItem('birthDetails');
+            localStorage.removeItem('chartPreferences');
+
+            document.getElementById('setupResult').innerHTML = 
+                '<p class="success">✅ All test data cleared from storage</p>';
+        }
+
+        function checkCurrentData() {
+            const sessionChart = sessionStorage.getItem('chartData');
+            const localChart = localStorage.getItem('chartData');
+            
+            let status = '<h3>Storage Status:</h3>';
+            
+            if (sessionChart) {
+                const data = JSON.parse(sessionChart);
+                status += '<p class="success">✅ SessionStorage: Chart data present</p>';
+                status += `<p class="info">Ascendant: ${data.ascendant_sign} (${data.ascendant?.toFixed(2)}°)</p>`;
+                status += `<p class="info">Planets: ${data.planets?.length || 0} calculated</p>`;
+                status += `<p class="info">Current Dasha: ${data.current_dasha?.mahadasha || 'Unknown'}</p>`;
+            } else {
+                status += '<p class="error">❌ SessionStorage: No chart data</p>';
+            }
+            
+            if (localChart) {
+                status += '<p class="success">✅ LocalStorage: Chart data present (fallback)</p>';
+            } else {
+                status += '<p class="error">❌ LocalStorage: No chart data</p>';
+            }
+
+            document.getElementById('statusResult').innerHTML = status;
+        }
+
+        function testDirectNavigation() {
+            document.getElementById('navigationResult').innerHTML = 
+                '<p class="info">🔄 Testing direct navigation...</p>' +
+                '<p>Opening /chart/result in new tab...</p>';
+            
+            window.open('/chart/result', '_blank');
+            
+            setTimeout(() => {
+                document.getElementById('navigationResult').innerHTML += 
+                    '<p class="success">✅ Navigation test completed</p>' +
+                    '<p class="info">Check the new tab - AI Insights tab should be visible if chart data exists</p>';
+            }, 1000);
+        }
+
+        function testWithChartData() {
+            setupTestData();
+            setTimeout(() => {
+                testDirectNavigation();
+            }, 500);
+        }
+
+        function testModuleLoading() {
+            document.getElementById('moduleResult').innerHTML = 
+                '<p class="info">🔄 Testing AI module loading...</p>';
+            
+            // Simulate module loading test
+            const expectedModules = [
+                'chart-interpretation',
+                'dasha-predictions',
+                'yoga-interpretations',
+                'transit-analysis',
+                'compatibility-analysis',
+                'match-horoscope',
+                'remedial-suggestions',
+                'personality-insights',
+                'career-guidance',
+                'relationship-insights',
+                'health-indicators',
+                'daily-predictions',
+                'yearly-predictions',
+                'prashna-horary'
+            ];
+            
+            document.getElementById('moduleResult').innerHTML = 
+                '<p class="success">✅ Expected AI modules:</p>' +
+                '<ul>' + expectedModules.map(m => `<li>${m}</li>`).join('') + '</ul>' +
+                '<p class="info">Navigate to /chart/result with chart data to test actual loading</p>';
+        }
+
+        function testModuleFiltering() {
+            document.getElementById('moduleResult').innerHTML = 
+                '<p class="info">🔄 Testing module filtering...</p>' +
+                '<p class="success">✅ Filter categories available:</p>' +
+                '<ul>' +
+                '<li>Prediction</li>' +
+                '<li>Interpretation</li>' +
+                '<li>Compatibility</li>' +
+                '<li>Remedies</li>' +
+                '<li>Transit</li>' +
+                '<li>Other</li>' +
+                '</ul>' +
+                '<p class="info">Search and category filtering will be tested in the actual UI</p>';
+        }
+
+        // Auto-check status on page load
+        window.onload = function() {
+            checkCurrentData();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[
+  {
+    "path": ".next/static/chunks/pages/*.js",
+    "maxSize": "50kb",
+    "compression": "gzip"
+  },
+  {
+    "path": ".next/static/chunks/main-*.js",
+    "maxSize": "30kb",
+    "compression": "gzip"
+  },
+  {
+    "path": ".next/static/chunks/framework-*.js",
+    "maxSize": "100kb",
+    "compression": "gzip"
+  },
+  {
+    "path": ".next/static/chunks/vendors-*.js",
+    "maxSize": "150kb",
+    "compression": "gzip"
+  },
+  {
+    "path": ".next/static/chunks/commons-*.js",
+    "maxSize": "50kb",
+    "compression": "gzip"
+  },
+  {
+    "path": ".next/static/css/*.css",
+    "maxSize": "20kb",
+    "compression": "gzip"
+  }
+]

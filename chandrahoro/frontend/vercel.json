@@ -1,0 +1,36 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-readings",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/cron/reset-quota",
+      "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/cron/transit-alerts",
+      "schedule": "30 0 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/daily-readings/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/reset-quota/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/transit-alerts/route.ts": {
+      "maxDuration": 300
+    },
+    "scripts/daily-readings-job.ts": {
+      "maxDuration": 300
+    },
+    "scripts/transit-alerts-job.ts": {
+      "maxDuration": 300
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

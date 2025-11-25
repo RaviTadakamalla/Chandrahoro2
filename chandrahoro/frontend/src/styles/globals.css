@@ -1,0 +1,752 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Saffron Design System */
+@layer base {
+  :root {
+    /* Saffron Color Palette - Light Mode */
+    --color-primary: #F46A1F;
+    --color-primary-600: #E25612;
+    --color-primary-700: #C74A10;
+    --color-marigold: #FFD6AE;
+    --color-sand: #FFEAD6;
+    --color-lime-accent: #DAF56B;
+    --color-charcoal: #1A1B1E;
+    --color-ink-80: #2A2B31;
+    --color-offwhite: #FFF7EF;
+
+    /* Font Variables */
+    --font-poppins: "Poppins", sans-serif;
+    --font-inter: "Inter", sans-serif;
+  }
+
+  .dark {
+    /* Dark Mode Adjustments */
+    --color-primary: #FF8C42;
+    --color-primary-600: #F46A1F;
+    --color-primary-700: #E25612;
+    --color-offwhite: #0E0F12;
+  }
+}
+
+/* Mobile-first responsive design base styles */
+@layer base {
+  html {
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+    /* Improve text rendering */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    /* Mobile-first font size - 16px minimum for iOS zoom prevention */
+    font-size: 16px;
+    line-height: 1.6; /* Improved line height for readability */
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+    /* Improve touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Responsive font scaling */
+  @media (max-width: 480px) {
+    body {
+      font-size: 16px; /* Maintain 16px minimum on mobile */
+      line-height: 1.6;
+    }
+
+    h1 { font-size: 1.75rem; line-height: 1.3; } /* 28px */
+    h2 { font-size: 1.5rem; line-height: 1.4; }  /* 24px */
+    h3 { font-size: 1.25rem; line-height: 1.4; } /* 20px */
+    h4 { font-size: 1.125rem; line-height: 1.5; } /* 18px */
+    h5 { font-size: 1rem; line-height: 1.5; }    /* 16px */
+    h6 { font-size: 0.875rem; line-height: 1.5; } /* 14px */
+
+    /* Ensure minimum touch target for small text links */
+    a {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    h1 { font-size: 2rem; line-height: 1.3; }    /* 32px */
+    h2 { font-size: 1.75rem; line-height: 1.4; } /* 28px */
+    h3 { font-size: 1.5rem; line-height: 1.4; }  /* 24px */
+    h4 { font-size: 1.25rem; line-height: 1.5; } /* 20px */
+  }
+
+  @media (min-width: 769px) {
+    h1 { font-size: 2.25rem; line-height: 1.2; } /* 36px */
+    h2 { font-size: 2rem; line-height: 1.3; }    /* 32px */
+    h3 { font-size: 1.75rem; line-height: 1.4; } /* 28px */
+    h4 { font-size: 1.5rem; line-height: 1.4; }  /* 24px */
+  }
+
+  /* Ensure images are responsive by default */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Touch-friendly interactive elements */
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Enhanced focus visibility for keyboard navigation */
+  :focus {
+    outline: none; /* Remove default outline */
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
+    transition: box-shadow 0.15s ease-in-out;
+  }
+
+  /* Enhanced focus for interactive elements */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [role="link"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  /* Special focus styles for form elements */
+  input[type="text"]:focus-visible,
+  input[type="email"]:focus-visible,
+  input[type="password"]:focus-visible,
+  input[type="date"]:focus-visible,
+  input[type="time"]:focus-visible,
+  input[type="search"]:focus-visible,
+  textarea:focus-visible {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+  }
+
+  /* Focus styles for checkboxes and radio buttons */
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  /* Focus styles for buttons */
+  button:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3), 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Focus styles for links */
+  a:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 2px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  /* High contrast mode focus indicators */
+  @media (prefers-contrast: high) {
+    :focus-visible {
+      outline: 3px solid;
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+  }
+
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    :focus-visible {
+      transition: none;
+    }
+
+    button:focus-visible {
+      transform: none;
+    }
+  }
+
+  /* Font optimization for different screen densities */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+  }
+
+  /* Improve text readability on small screens */
+  @media (max-width: 480px) {
+    p, li, td, th {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    /* Ensure sufficient spacing between interactive elements */
+    button + button,
+    a + a,
+    input + input {
+      margin-top: 0.5rem;
+    }
+
+    /* Improve form readability */
+    label {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    input, textarea, select {
+      font-size: 16px; /* Prevent zoom on iOS */
+      line-height: 1.5;
+      padding: 0.75rem;
+    }
+  }
+
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 0 0% 29%;  /* #4a4a4a - WCAG AA compliant */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 0 0% 42%;  /* #6a6a6a - WCAG AA compliant */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --destructive: 0 84% 40%;  /* #cc0000 - WCAG AA compliant */
+    --destructive-foreground: 210 40% 98%;
+
+    /* Additional accessible colors */
+    --success: 120 100% 20%;  /* #006600 - WCAG AA compliant */
+    --success-foreground: 0 0% 100%;
+    --warning: 30 100% 40%;  /* #cc6600 - WCAG AA compliant */
+    --warning-foreground: 0 0% 100%;
+    --info: 221 100% 40%;  /* #0066cc - WCAG AA compliant */
+    --info-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 10%;  /* #1a1a1a */
+    --foreground: 0 0% 100%;  /* #ffffff - WCAG AA compliant */
+    --card: 0 0% 10%;  /* #1a1a1a */
+    --card-foreground: 0 0% 100%;  /* #ffffff - WCAG AA compliant */
+    --popover: 0 0% 10%;  /* #1a1a1a */
+    --popover-foreground: 0 0% 100%;  /* #ffffff - WCAG AA compliant */
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 15%;  /* #262626 */
+    --secondary-foreground: 0 0% 85%;  /* #d9d9d9 - WCAG AA compliant */
+    --muted: 0 0% 15%;  /* #262626 */
+    --muted-foreground: 0 0% 70%;  /* #b3b3b3 - WCAG AA compliant */
+    --accent: 0 0% 15%;  /* #262626 */
+    --accent-foreground: 0 0% 100%;  /* #ffffff - WCAG AA compliant */
+    --destructive: 0 84% 60%;  /* #ff4d4d - lighter for dark mode */
+    --destructive-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+
+    /* Additional accessible colors for dark mode */
+    --success: 120 100% 40%;  /* #00cc00 - lighter for dark mode */
+    --success-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --warning: 30 100% 60%;  /* #ff9933 - lighter for dark mode */
+    --warning-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --info: 221 100% 60%;  /* #4d9fff - lighter for dark mode */
+    --info-foreground: 0 0% 10%;  /* #1a1a1a - WCAG AA compliant */
+    --border: 0 0% 15%;  /* #262626 */
+    --input: 0 0% 15%;  /* #262626 */
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+/* Saffron Design System Utilities */
+@layer utilities {
+  .mandala-bg {
+    background-image:
+      radial-gradient(circle at center, transparent 0%, rgba(244, 106, 31, 0.05) 100%);
+    background-attachment: fixed;
+  }
+
+  .glass-light {
+    @apply backdrop-blur-xl bg-white/65 border border-white/20;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-xl bg-ink-80/60 border border-white/10;
+  }
+
+  .glass {
+    @apply backdrop-blur-xl bg-white/65 border border-white/20 dark:bg-ink-80/60 dark:border-white/10;
+  }
+
+  .saffron-gradient {
+    @apply bg-gradient-to-r from-saffron-400 to-saffron-600;
+  }
+
+  .saffron-glow {
+    @apply shadow-glow;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-soft;
+  }
+
+  .button-hover {
+    @apply transition-all duration-150 hover:-translate-y-0.5 hover:shadow-soft active:translate-y-0;
+  }
+
+  .focus-saffron {
+    @apply outline-2 outline-offset-2 outline-lime-accent;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom scrollbar */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+  /* Safe area insets for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Touch-friendly spacing */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile-optimized text sizes with improved readability */
+  .text-mobile-xs {
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0.025em;
+  }
+  .text-mobile-sm {
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: 0.025em;
+  }
+  .text-mobile-base {
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: 0.025em;
+  }
+  .text-mobile-lg {
+    font-size: 18px;
+    line-height: 1.6;
+    letter-spacing: 0.025em;
+  }
+  .text-mobile-xl {
+    font-size: 20px;
+    line-height: 1.5;
+    letter-spacing: 0.025em;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive-sm {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 640px) {
+    .text-responsive-sm {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+  }
+
+  .text-responsive-base {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 640px) {
+    .text-responsive-base {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+  }
+
+  .text-responsive-lg {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 640px) {
+    .text-responsive-lg {
+      font-size: 20px;
+      line-height: 1.5;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .text-responsive-lg {
+      font-size: 24px;
+      line-height: 1.4;
+    }
+  }
+
+  /* Responsive containers */
+  .container-mobile {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-mobile {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-mobile {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* Mobile-first grid utilities */
+  .grid-mobile-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .grid-mobile-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  @media (min-width: 768px) {
+    .md\:grid-tablet-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .md\:grid-tablet-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .md\:grid-tablet-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:grid-desktop-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .lg\:grid-desktop-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .lg\:grid-desktop-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
+  /* WCAG AA compliant color utilities */
+  .text-accessible-primary { color: hsl(var(--foreground)); }
+  .text-accessible-secondary { color: hsl(var(--secondary-foreground)); }
+  .text-accessible-muted { color: hsl(var(--muted-foreground)); }
+  .text-accessible-success { color: hsl(var(--success)); }
+  .text-accessible-warning { color: hsl(var(--warning)); }
+  .text-accessible-error { color: hsl(var(--destructive)); }
+  .text-accessible-info { color: hsl(var(--info)); }
+
+  .bg-accessible-success { background-color: hsl(var(--success)); color: hsl(var(--success-foreground)); }
+  .bg-accessible-warning { background-color: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
+  .bg-accessible-error { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+  .bg-accessible-info { background-color: hsl(var(--info)); color: hsl(var(--info-foreground)); }
+
+  /* Focus management utilities */
+  .focus-ring {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  .focus-ring-inset {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: -2px;
+    box-shadow: inset 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  .focus-visible-only {
+    outline: none;
+  }
+
+  .focus-visible-only:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+
+  /* Skip link for screen readers */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+    font-weight: 600;
+  }
+
+  .skip-link:focus {
+    top: 6px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --foreground: 0 0% 0%;  /* Pure black */
+      --muted-foreground: 0 0% 20%;  /* Darker gray */
+    }
+
+    .dark {
+      --foreground: 0 0% 100%;  /* Pure white */
+      --muted-foreground: 0 0% 80%;  /* Lighter gray */
+    }
+
+    .focus-ring,
+    .focus-ring-inset,
+    .focus-visible-only:focus-visible {
+      outline-width: 3px;
+      box-shadow: none;
+    }
+  }
+}
+
+/* Mobile-specific optimizations */
+@layer utilities {
+  /* Touch-friendly targets */
+  @media (max-width: 768px) {
+    button, a, [role="button"], input[type="submit"], input[type="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Prevent text size adjustment on orientation change */
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    /* Smooth scrolling and touch optimization */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Safe area insets for notched devices */
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Mobile-optimized form elements */
+    input, select, textarea {
+      font-size: 16px !important; /* Prevent zoom on input focus (iOS) */
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    /* Mobile-optimized buttons */
+    button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* Mobile-optimized cards */
+    .mobile-card {
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Mobile navigation spacing */
+    .mobile-nav-spacing {
+      padding-bottom: 80px; /* Space for bottom navigation */
+    }
+  }
+
+  /* Landscape mode optimizations */
+  @media (max-width: 768px) and (orientation: landscape) {
+    .mobile-nav-spacing {
+      padding-bottom: 60px; /* Reduced spacing in landscape */
+    }
+
+    /* Adjust header sizes for landscape */
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1.125rem; }
+  }
+
+  /* iOS-specific optimizations */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific styles */
+    input, textarea {
+      -webkit-appearance: none;
+      border-radius: 8px;
+    }
+
+    /* Fix for iOS Safari bottom safe area with bottom nav */
+    .ios-bottom-nav-fix {
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Android-specific optimizations */
+  @media (max-width: 768px) {
+    /* Android Chrome specific styles */
+    input[type="date"], input[type="time"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+  }
+
+  /* PWA-specific styles */
+  @media (display-mode: standalone) {
+    /* PWA fullscreen mode adjustments */
+    body {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .pwa-header {
+      padding-top: calc(16px + env(safe-area-inset-top));
+    }
+  }
+}
+
+/* Accessibility Enhancements */
+@layer utilities {
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* High contrast mode */
+  .high-contrast {
+    --background: 255 255 255;
+    --foreground: 0 0 0;
+    --muted: 240 240 240;
+    --muted-foreground: 64 64 64;
+    --border: 128 128 128;
+  }
+
+  .high-contrast.dark {
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+    --muted: 32 32 32;
+    --muted-foreground: 192 192 192;
+    --border: 128 128 128;
+  }
+
+  /* Font size adjustments */
+  .font-large {
+    font-size: 1.125rem; /* 18px base instead of 16px */
+  }
+
+  .font-extra-large {
+    font-size: 1.25rem; /* 20px base instead of 16px */
+  }
+
+  /* Reduced motion */
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

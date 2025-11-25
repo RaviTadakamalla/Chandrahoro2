@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Chart Data Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #output { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Test Chart Data Flow</h1>
+    <p>This page simulates the chart generation flow to test data storage and retrieval.</p>
+    
+    <button onclick="simulateChartGeneration()">Simulate Chart Generation</button>
+    <button onclick="testDataRetrieval()">Test Data Retrieval</button>
+    <button onclick="goToChartResult()">Go to Chart Result Page</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    
+    <div id="output"></div>
+
+    <script>
+        function simulateChartGeneration() {
+            // Simulate the exact data structure that would be stored from the home page
+            const birthDetails = {
+                name: "John Doe",
+                date: "1990-01-15",
+                time: "14:30",
+                time_unknown: false,
+                latitude: 28.6139,
+                longitude: 77.2090,
+                timezone: "Asia/Kolkata",
+                location_name: "New Delhi, India"
+            };
+
+            const chartPreferences = {
+                ayanamsha: "Lahiri",
+                house_system: "Placidus",
+                chart_style: "North Indian",
+                divisional_charts: ["D1", "D9", "D10"],
+                enable_ai: true
+            };
+
+            // Simulate chart data that would come from the API
+            const mockChartData = {
+                ascendant: 125.45,
+                ascendant_sign: "Leo",
+                ayanamsha_value: 24.12,
+                planets: [
+                    {
+                        name: "Sun",
+                        sign: "Capricorn",
+                        degree_in_sign: 25.30,
+                        nakshatra: "Dhanishta",
+                        pada: 2,
+                        house: 6,
+                        retrograde: false
+                    },
+                    {
+                        name: "Moon",
+                        sign: "Pisces",
+                        degree_in_sign: 12.15,
+                        nakshatra: "Uttara Bhadrapada",
+                        pada: 3,
+                        house: 8,
+                        retrograde: false
+                    }
+                ],
+                houses: [
+                    { number: 1, sign: "Leo", degree: 125.45 },
+                    { number: 2, sign: "Virgo", degree: 155.45 }
+                ]
+            };
+
+            // Store data exactly as the home page would
+            sessionStorage.setItem('chartData', JSON.stringify(mockChartData));
+            sessionStorage.setItem('birthDetails', JSON.stringify(birthDetails));
+            sessionStorage.setItem('chartPreferences', JSON.stringify(chartPreferences));
+
+            document.getElementById('output').innerHTML = 
+                '<p class="success">✅ Chart generation simulated successfully!</p>' +
+                '<p class="info">Data stored in sessionStorage:</p>' +
+                '<ul>' +
+                '<li>chartData: ' + JSON.stringify(mockChartData).length + ' characters</li>' +
+                '<li>birthDetails: ' + JSON.stringify(birthDetails).length + ' characters</li>' +
+                '<li>chartPreferences: ' + JSON.stringify(chartPreferences).length + ' characters</li>' +
+                '</ul>';
+        }
+
+        function testDataRetrieval() {
+            try {
+                let storedChart = sessionStorage.getItem('chartData');
+                let storedBirthDetails = sessionStorage.getItem('birthDetails');
+                let storedPreferences = sessionStorage.getItem('chartPreferences');
+
+                let output = '<h3>Data Retrieval Test:</h3>';
+
+                if (storedChart && storedBirthDetails && storedPreferences) {
+                    const chartData = JSON.parse(storedChart);
+                    const birthDetails = JSON.parse(storedBirthDetails);
+                    const preferences = JSON.parse(storedPreferences);
+                    
+                    output += '<p class="success">✅ All data found in sessionStorage</p>';
+                    
+                    // Test the display logic that the chart result page uses
+                    output += '<h4>Birth Details Display Test:</h4>';
+                    output += '<table border="1" style="border-collapse: collapse; margin: 10px 0;">';
+                    output += '<tr><td><strong>Name:</strong></td><td>' + (birthDetails.name || 'Not provided') + '</td></tr>';
+                    output += '<tr><td><strong>Date:</strong></td><td>' + (birthDetails.date || 'Not provided') + '</td></tr>';
+                    output += '<tr><td><strong>Time:</strong></td><td>' + (birthDetails.time || 'Unknown') + '</td></tr>';
+                    output += '<tr><td><strong>Location:</strong></td><td>' + (birthDetails.location_name || 'Not provided') + '</td></tr>';
+                    output += '</table>';
+                    
+                    output += '<h4>Chart Data Summary:</h4>';
+                    output += '<table border="1" style="border-collapse: collapse; margin: 10px 0;">';
+                    output += '<tr><td><strong>Ascendant Sign:</strong></td><td>' + (chartData.ascendant_sign || 'Not available') + '</td></tr>';
+                    output += '<tr><td><strong>Ascendant Degree:</strong></td><td>' + (chartData.ascendant ? chartData.ascendant.toFixed(2) : '0.00') + '°</td></tr>';
+                    output += '<tr><td><strong>Ayanamsha:</strong></td><td>' + (chartData.ayanamsha_value ? chartData.ayanamsha_value.toFixed(2) : '0.00') + '°</td></tr>';
+                    output += '<tr><td><strong>Planets Count:</strong></td><td>' + (chartData.planets ? chartData.planets.length : 0) + '</td></tr>';
+                    output += '</table>';
+                    
+                } else {
+                    output += '<p class="error">❌ Missing data in sessionStorage:</p>';
+                    output += '<ul>';
+                    output += '<li>chartData: ' + (storedChart ? '✅ Found' : '❌ Missing') + '</li>';
+                    output += '<li>birthDetails: ' + (storedBirthDetails ? '✅ Found' : '❌ Missing') + '</li>';
+                    output += '<li>chartPreferences: ' + (storedPreferences ? '✅ Found' : '❌ Missing') + '</li>';
+                    output += '</ul>';
+                }
+
+                document.getElementById('output').innerHTML = output;
+            } catch (error) {
+                document.getElementById('output').innerHTML = '<p class="error">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        function goToChartResult() {
+            // Navigate to the chart result page
+            window.location.href = '/chart/result';
+        }
+
+        function clearStorage() {
+            sessionStorage.removeItem('chartData');
+            sessionStorage.removeItem('birthDetails');
+            sessionStorage.removeItem('chartPreferences');
+            document.getElementById('output').innerHTML = '<p class="info">🧹 Storage cleared!</p>';
+        }
+
+        // Auto-run data retrieval test on page load
+        window.onload = function() {
+            testDataRetrieval();
+        };
+    </script>
+</body>
+</html>
