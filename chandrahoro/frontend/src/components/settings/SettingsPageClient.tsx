@@ -20,6 +20,7 @@ import AppearanceSettings from './AppearanceSettings';
 import ReadingToneSettings from './ReadingToneSettings';
 import NotificationSettings from './NotificationSettings';
 import AccountSettings from './AccountSettings';
+import AiPromptsSettings from './AiPromptsSettings';
 
 interface SettingsPageClientProps {
   session: Session;
@@ -57,7 +58,7 @@ export default function SettingsPageClient({
 
       {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-3 lg:grid-cols-7 w-full">
           <TabsTrigger value="profile" className="text-xs lg:text-sm">
             Profile
           </TabsTrigger>
@@ -75,6 +76,9 @@ export default function SettingsPageClient({
           </TabsTrigger>
           <TabsTrigger value="account" className="text-xs lg:text-sm">
             Account
+          </TabsTrigger>
+          <TabsTrigger value="ai-prompts" className="text-xs lg:text-sm">
+            AI Prompts
           </TabsTrigger>
         </TabsList>
 
@@ -100,6 +104,10 @@ export default function SettingsPageClient({
 
         <TabsContent value="account" className="space-y-6">
           <AccountSettings session={session} profile={profile} />
+        </TabsContent>
+
+        <TabsContent value="ai-prompts" className="space-y-6">
+          <AiPromptsSettings session={session} profile={profile} />
         </TabsContent>
       </Tabs>
     </div>

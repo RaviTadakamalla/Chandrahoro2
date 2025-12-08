@@ -94,6 +94,15 @@ async def interpret_chart(
         print(f"DEBUG: Starting interpretation for user {current_user.id}")
         logger.info(f"Generating chart interpretation for user {current_user.id}")
 
+        # Debug: Log received chart data
+        logger.info("=== Received Chart Data ===")
+        logger.info(f"Chart data keys: {list(request.chart_data.keys())}")
+        if "birth_info" in request.chart_data:
+            birth_info = request.chart_data["birth_info"]
+            logger.info(f"Birth info received: {birth_info}")
+        else:
+            logger.warning("No birth_info in received chart_data!")
+
         # Get user's LLM configuration
         llm_config = await llm_service.get_config(db, current_user.id)
         if not llm_config:

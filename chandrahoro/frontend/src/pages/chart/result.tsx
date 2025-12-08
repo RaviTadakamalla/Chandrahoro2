@@ -90,13 +90,44 @@ export default function ChartResult() {
       }
 
       if (storedChart) {
-        const data = JSON.parse(storedChart);
-        console.log('Loaded chart data:', data);
-        console.log('Chart data keys:', Object.keys(data));
+        const rawData = JSON.parse(storedChart);
+        console.log('Loaded chart data:', rawData);
+        console.log('Chart data keys:', Object.keys(rawData));
+
+        // Check if this is the new multi-methodology format
+        let data;
+        if (rawData.methodologies && rawData.selected_methodology) {
+          console.log('Detected multi-methodology format');
+          const selectedMethod = rawData.selected_methodology;
+          console.log('Selected methodology:', selectedMethod);
+
+          // Extract the chart data for the selected methodology
+          const methodologyData = rawData.methodologies[selectedMethod];
+
+          // Create a combined data structure that preserves multi-methodology info
+          // while also having the current methodology's data at the root level
+          data = {
+            ...methodologyData,  // Current methodology's data at root level
+            methodology: selectedMethod,
+            selected_methodology: selectedMethod,
+            methodologies: rawData.methodologies,  // Preserve all methodologies
+            calculation_summary: rawData.calculation_summary,  // Preserve summary
+            birth_data: rawData.birth_data  // Preserve original birth data
+          };
+
+          console.log('Extracted chart data for methodology:', selectedMethod);
+          console.log('Available methodologies:', Object.keys(rawData.methodologies));
+        } else {
+          // Old format - use as is
+          console.log('Using legacy single-methodology format');
+          data = rawData;
+        }
+
         console.log('Ascendant sign:', data.ascendant_sign);
         console.log('Ascendant degree:', data.ascendant);
         console.log('Ascendant type:', typeof data.ascendant);
         console.log('Planets:', data.planets);
+        console.log('Birth info:', data.birth_info);
 
         // Normalize ascendant data if it's an object (for backward compatibility)
         if (data.ascendant && typeof data.ascendant === 'object') {
@@ -196,6 +227,9 @@ export default function ChartResult() {
       const updatedChartData = {
         ...chartData,
         selected_methodology: newMethodology,
+        // Copy core data from the selected methodology
+        birth_info: methodologyData.birth_info,
+        preferences: methodologyData.preferences,
         planets: methodologyData.planets || [],
         ascendant: methodologyData.ascendant || 0,
         ascendant_sign: methodologyData.ascendant_sign || '',

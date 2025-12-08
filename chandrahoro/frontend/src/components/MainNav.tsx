@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart3, User, TrendingUp, Sparkles } from 'lucide-react';
+import { LogOut, Settings, BarChart3, User, TrendingUp, Sparkles, FileText } from 'lucide-react';
 
 const navItems = [
   { label: 'Home', href: '/' },
@@ -152,6 +152,12 @@ export function MainNav() {
                       <span>AI Insights</span>
                     </DropdownMenuItem>
                   </Link>
+                  <Link href="/ai-prompt-config">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <FileText className="w-4 h-4 mr-2" />
+                      <span>AI Prompt Config</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <Link href="/settings">
                     <DropdownMenuItem className="cursor-pointer">
                       <Settings className="w-4 h-4 mr-2" />
@@ -245,6 +251,18 @@ export function MainNav() {
                     <div className="block px-4 py-2 rounded-lg text-charcoal dark:text-white hover:bg-saffron-100 dark:hover:bg-saffron-900/30 transition-colors mb-2">
                       <TrendingUp className="w-4 h-4 inline mr-2" />
                       Intensity Analysis
+                    </div>
+                  </Link>
+                  <Link href="/ai-insights" onClick={() => setMobileMenuOpen(false)}>
+                    <div className="block px-4 py-2 rounded-lg text-charcoal dark:text-white hover:bg-saffron-100 dark:hover:bg-saffron-900/30 transition-colors mb-2">
+                      <Sparkles className="w-4 h-4 inline mr-2" />
+                      AI Insights
+                    </div>
+                  </Link>
+                  <Link href="/ai-prompt-config" onClick={() => setMobileMenuOpen(false)}>
+                    <div className="block px-4 py-2 rounded-lg text-charcoal dark:text-white hover:bg-saffron-100 dark:hover:bg-saffron-900/30 transition-colors mb-2">
+                      <FileText className="w-4 h-4 inline mr-2" />
+                      AI Prompt Config
                     </div>
                   </Link>
                   <Link href="/settings" onClick={() => setMobileMenuOpen(false)}>

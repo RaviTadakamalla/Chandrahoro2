@@ -12,7 +12,7 @@ from sqlalchemy import select, update, delete, and_, or_, func
 from sqlalchemy.orm import selectinload
 from app.models import (
     User, LlmConfig, LlmSharedKey, LlmSharedKeyUsage, LlmAdminDefaults, LlmUserAccess, LlmAuditLog,
-    LlmProvider, ResponseFormat, AuditAction
+    LlmProvider, ResponseFormat, AuditAction, AiModuleType
 )
 from app.core.security import hash_password
 import logging
@@ -514,10 +514,20 @@ class LlmService:
             raise
 
         try:
+            # Get custom prompt template if configured
+            try:
+                prompt_template = await self._get_prompt_template(
+                    db, AiModuleType.CHART_INTERPRETATION, user_id
+                )
+                logger.info(f"Using custom prompt template for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to get custom prompt, using default: {e}")
+                prompt_template = None
+
             # Generate interpretation using the configured provider
             result = await self._generate_with_provider(
                 config.provider, api_key, config.model,
-                chart_data, "interpretation"
+                chart_data, "interpretation", custom_prompt=prompt_template
             )
 
             # Log usage if successful
@@ -833,10 +843,19 @@ class LlmService:
         api_key: str,
         model: str,
         data: Dict[str, Any],
-        request_type: str
+        request_type: str,
+        custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate content using the specified provider.
+
+        Args:
+            provider: LLM provider
+            api_key: API key
+            model: Model name
+            data: Chart data and other context
+            request_type: Type of request (interpretation, chat, etc.)
+            custom_prompt: Optional custom prompt template to use instead of default
 
         Args:
             provider: LLM provider enum
@@ -854,13 +873,13 @@ class LlmService:
 
         try:
             if provider == LlmProvider.OPENROUTER:
-                return await self._generate_openrouter(api_key, model, data, request_type)
+                return await self._generate_openrouter(api_key, model, data, request_type, custom_prompt)
             elif provider == LlmProvider.OPENAI:
-                return await self._generate_openai(api_key, model, data, request_type)
+                return await self._generate_openai(api_key, model, data, request_type, custom_prompt)
             elif provider == LlmProvider.ANTHROPIC:
-                return await self._generate_anthropic(api_key, model, data, request_type)
+                return await self._generate_anthropic(api_key, model, data, request_type, custom_prompt)
             elif provider == LlmProvider.PERPLEXITY:
-                return await self._generate_perplexity(api_key, model, data, request_type)
+                return await self._generate_perplexity(api_key, model, data, request_type, custom_prompt)
             else:
                 return {
                     "success": False,
@@ -1058,7 +1077,7 @@ Your chart shows interesting patterns that suggest this is a good time for intro
             }
 
     async def _generate_openrouter(
-        self, api_key: str, model: str, data: Dict[str, Any], request_type: str
+        self, api_key: str, model: str, data: Dict[str, Any], request_type: str, custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate content using OpenRouter API."""
         try:
@@ -1069,21 +1088,25 @@ Your chart shows interesting patterns that suggest this is a good time for intro
                 base_url="https://openrouter.ai/api/v1"
             )
 
-            if request_type == "interpretation":
-                prompt = self._build_interpretation_prompt(data)
-            elif request_type == "chat":
-                prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
-            elif request_type == "compatibility":
-                prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
-            elif request_type == "match_horoscope":
-                prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+            # Use custom prompt if provided, otherwise use default
+            if custom_prompt:
+                prompt = self._fill_prompt_template(custom_prompt, data, request_type)
             else:
-                raise ValueError(f"Unknown request type: {request_type}")
+                if request_type == "interpretation":
+                    prompt = self._build_interpretation_prompt(data)
+                elif request_type == "chat":
+                    prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
+                elif request_type == "compatibility":
+                    prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
+                elif request_type == "match_horoscope":
+                    prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+                else:
+                    raise ValueError(f"Unknown request type: {request_type}")
 
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=2000,
+                max_tokens=8000,  # Increased for comprehensive horoscope reports
                 temperature=0.7
             )
 
@@ -1146,7 +1169,7 @@ Your chart shows interesting patterns that suggest this is a good time for intro
             }
 
     async def _generate_openai(
-        self, api_key: str, model: str, data: Dict[str, Any], request_type: str
+        self, api_key: str, model: str, data: Dict[str, Any], request_type: str, custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate content using OpenAI API."""
         try:
@@ -1154,21 +1177,25 @@ Your chart shows interesting patterns that suggest this is a good time for intro
 
             client = openai.OpenAI(api_key=api_key)
 
-            if request_type == "interpretation":
-                prompt = self._build_interpretation_prompt(data)
-            elif request_type == "chat":
-                prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
-            elif request_type == "compatibility":
-                prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
-            elif request_type == "match_horoscope":
-                prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+            # Use custom prompt if provided, otherwise use default
+            if custom_prompt:
+                prompt = self._fill_prompt_template(custom_prompt, data, request_type)
             else:
-                raise ValueError(f"Unknown request type: {request_type}")
+                if request_type == "interpretation":
+                    prompt = self._build_interpretation_prompt(data)
+                elif request_type == "chat":
+                    prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
+                elif request_type == "compatibility":
+                    prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
+                elif request_type == "match_horoscope":
+                    prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+                else:
+                    raise ValueError(f"Unknown request type: {request_type}")
 
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=2000,
+                max_tokens=8000,  # Increased for comprehensive horoscope reports
                 temperature=0.7
             )
 
@@ -1191,7 +1218,7 @@ Your chart shows interesting patterns that suggest this is a good time for intro
             }
 
     async def _generate_anthropic(
-        self, api_key: str, model: str, data: Dict[str, Any], request_type: str
+        self, api_key: str, model: str, data: Dict[str, Any], request_type: str, custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate content using Anthropic API."""
         try:
@@ -1199,20 +1226,24 @@ Your chart shows interesting patterns that suggest this is a good time for intro
 
             client = anthropic.Anthropic(api_key=api_key)
 
-            if request_type == "interpretation":
-                prompt = self._build_interpretation_prompt(data)
-            elif request_type == "chat":
-                prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
-            elif request_type == "compatibility":
-                prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
-            elif request_type == "match_horoscope":
-                prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+            # Use custom prompt if provided, otherwise use default
+            if custom_prompt:
+                prompt = self._fill_prompt_template(custom_prompt, data, request_type)
             else:
-                raise ValueError(f"Unknown request type: {request_type}")
+                if request_type == "interpretation":
+                    prompt = self._build_interpretation_prompt(data)
+                elif request_type == "chat":
+                    prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
+                elif request_type == "compatibility":
+                    prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
+                elif request_type == "match_horoscope":
+                    prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+                else:
+                    raise ValueError(f"Unknown request type: {request_type}")
 
             response = client.messages.create(
                 model=model,
-                max_tokens=2000,
+                max_tokens=8000,  # Increased for comprehensive horoscope reports
                 temperature=0.7,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -1236,7 +1267,7 @@ Your chart shows interesting patterns that suggest this is a good time for intro
             }
 
     async def _generate_perplexity(
-        self, api_key: str, model: str, data: Dict[str, Any], request_type: str
+        self, api_key: str, model: str, data: Dict[str, Any], request_type: str, custom_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate content using Perplexity API (OpenAI-compatible)."""
         try:
@@ -1247,21 +1278,25 @@ Your chart shows interesting patterns that suggest this is a good time for intro
                 base_url="https://api.perplexity.ai"
             )
 
-            if request_type == "interpretation":
-                prompt = self._build_interpretation_prompt(data)
-            elif request_type == "chat":
-                prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
-            elif request_type == "compatibility":
-                prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
-            elif request_type == "match_horoscope":
-                prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+            # Use custom prompt if provided, otherwise use default
+            if custom_prompt:
+                prompt = self._fill_prompt_template(custom_prompt, data, request_type)
             else:
-                raise ValueError(f"Unknown request type: {request_type}")
+                if request_type == "interpretation":
+                    prompt = self._build_interpretation_prompt(data)
+                elif request_type == "chat":
+                    prompt = self._build_chat_prompt(data["chart_data"], data["question"], data["history"])
+                elif request_type == "compatibility":
+                    prompt = self._build_compatibility_prompt(data["primary_chart"], data["partner_chart"], data["focus_areas"])
+                elif request_type == "match_horoscope":
+                    prompt = self._build_match_horoscope_prompt(data["primary_chart"], data["partner_chart"])
+                else:
+                    raise ValueError(f"Unknown request type: {request_type}")
 
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=2000,
+                max_tokens=8000,  # Increased for comprehensive horoscope reports
                 temperature=0.7
             )
 
@@ -1283,8 +1318,167 @@ Your chart shows interesting patterns that suggest this is a good time for intro
                 "error": f"Perplexity API error: {str(e)}"
             }
 
+    async def _get_prompt_template(
+        self,
+        db: AsyncSession,
+        module_type: AiModuleType,
+        user_id: Optional[str] = None
+    ) -> str:
+        """
+        Get prompt template from configuration system with fallback to default.
+
+        Args:
+            db: Database session
+            module_type: Type of AI module
+            user_id: User ID (optional)
+
+        Returns:
+            Prompt template string
+        """
+        try:
+            from app.services.ai_prompt_service import AiPromptService
+            prompt_service = AiPromptService()
+
+            # Try to get custom or system prompt from database
+            prompt_text = await prompt_service.get_prompt_text(db, module_type, user_id)
+            logger.info(f"Using configured prompt for module {module_type}")
+            return prompt_text
+        except Exception as e:
+            logger.warning(f"Failed to get configured prompt for {module_type}: {e}. Using hardcoded default.")
+            # Fall back to hardcoded default
+            return self._get_hardcoded_prompt(module_type)
+
+    def _get_hardcoded_prompt(self, module_type: AiModuleType) -> str:
+        """Get hardcoded default prompt as ultimate fallback."""
+        if module_type == AiModuleType.CHART_INTERPRETATION:
+            return self._build_interpretation_prompt_template()
+        elif module_type == AiModuleType.CHAT:
+            return self._build_chat_prompt_template()
+        elif module_type == AiModuleType.COMPATIBILITY_ANALYSIS:
+            return self._build_compatibility_prompt_template()
+        elif module_type == AiModuleType.MATCH_HOROSCOPE:
+            return self._build_match_horoscope_prompt_template()
+        else:
+            raise ValueError(f"No hardcoded prompt available for module type: {module_type}")
+
+    def _fill_prompt_template(
+        self,
+        template: str,
+        data: Dict[str, Any],
+        request_type: str
+    ) -> str:
+        """
+        Fill a prompt template with actual data.
+
+        Args:
+            template: Prompt template with {variables}
+            data: Data dictionary
+            request_type: Type of request
+
+        Returns:
+            Filled prompt string
+        """
+        # Prepare variables based on request type
+        variables = {}
+
+        if request_type == "interpretation":
+            # Format chart data for the prompt
+            chart_str = self._format_chart_data(data)
+            variables["chart_data"] = chart_str
+
+        elif request_type == "chat":
+            chart_str = self._format_chart_data(data.get("chart_data", {}))
+            variables["chart_data"] = chart_str
+            variables["question"] = data.get("question", "")
+
+            # Format conversation history
+            history = data.get("history", [])
+            history_str = ""
+            if history:
+                for msg in history[-5:]:
+                    role = msg.get("role", "user")
+                    content = msg.get("content", "")
+                    history_str += f"{role.title()}: {content}\n"
+            variables["conversation_history"] = history_str
+
+        elif request_type == "compatibility":
+            primary_str = self._format_chart_data(data.get("primary_chart", {}))
+            partner_str = self._format_chart_data(data.get("partner_chart", {}))
+            variables["primary_chart"] = primary_str
+            variables["partner_chart"] = partner_str
+            variables["focus_areas"] = ", ".join(data.get("focus_areas", []))
+
+        elif request_type == "match_horoscope":
+            primary_str = self._format_chart_data(data.get("primary_chart", {}))
+            partner_str = self._format_chart_data(data.get("partner_chart", {}))
+            variables["primary_chart"] = primary_str
+            variables["partner_chart"] = partner_str
+
+        # Fill template
+        try:
+            filled_prompt = template.format(**variables)
+            return filled_prompt
+        except KeyError as e:
+            logger.warning(f"Missing variable in prompt template: {e}. Using template as-is.")
+            return template
+
+    def _format_chart_data(self, chart_data: Dict[str, Any]) -> str:
+        """Format chart data for inclusion in prompts."""
+        formatted = ""
+
+        # Add birth info
+        if "birth_info" in chart_data:
+            birth_info = chart_data["birth_info"]
+            formatted += f"Name: {birth_info.get('name', 'Unknown')}\n"
+            formatted += f"Date: {birth_info.get('date', 'Unknown')}\n"
+            formatted += f"Time: {birth_info.get('time', 'Unknown')}\n"
+            formatted += f"Location: {birth_info.get('location', 'Unknown')}\n\n"
+
+        # Add planetary positions
+        if "planets" in chart_data:
+            formatted += "Planetary Positions:\n"
+            planets = chart_data["planets"]
+            if isinstance(planets, list):
+                for planet_data in planets:
+                    name = planet_data.get('name', 'Unknown')
+                    sign = planet_data.get('sign', 'Unknown')
+                    longitude = planet_data.get('sidereal_longitude', planet_data.get('longitude', 0))
+                    formatted += f"  {name}: {sign} {longitude:.2f}°\n"
+            elif isinstance(planets, dict):
+                for planet, pdata in planets.items():
+                    formatted += f"  {planet}: {pdata.get('sign', 'Unknown')} {pdata.get('longitude', 0):.2f}°\n"
+
+        return formatted
+
+    def _build_interpretation_prompt_template(self) -> str:
+        """Build template for chart interpretation prompt."""
+        return """Provide a comprehensive Vedic astrology interpretation of this birth chart:
+
+Chart Data:
+{chart_data}
+
+Please provide interpretation covering:
+1. **Personality & Character** - Based on Ascendant and Moon
+2. **Mental Nature** - Based on Mercury and Moon
+3. **Career & Profession** - Based on 10th house and its lord
+4. **Relationships** - Based on 7th house and Venus
+5. **Health & Vitality** - Based on 6th house and Mars
+6. **Wealth & Resources** - Based on 2nd and 11th houses
+7. **Discipline & Karma** - Based on Saturn
+8. **Key Life Themes** - Based on overall chart patterns
+
+Be specific with planetary positions and astrological principles."""
+
     def _build_interpretation_prompt(self, chart_data: Dict[str, Any]) -> str:
         """Build prompt for chart interpretation."""
+        # Debug logging
+        logger.info("=== Building Interpretation Prompt ===")
+        logger.info(f"Chart data keys: {list(chart_data.keys())}")
+        if "birth_info" in chart_data:
+            logger.info(f"Birth info found: {chart_data['birth_info']}")
+        else:
+            logger.warning("No birth_info in chart_data!")
+
         prompt = """Provide a comprehensive Vedic astrology interpretation of this birth chart:
 
 Chart Data:
@@ -1293,10 +1487,17 @@ Chart Data:
         # Add birth info
         if "birth_info" in chart_data:
             birth_info = chart_data["birth_info"]
-            prompt += f"Name: {birth_info.get('name', 'Unknown')}\n"
-            prompt += f"Date: {birth_info.get('date', 'Unknown')}\n"
-            prompt += f"Time: {birth_info.get('time', 'Unknown')}\n"
-            prompt += f"Location: {birth_info.get('location', 'Unknown')}\n\n"
+            name = birth_info.get('name', 'Unknown')
+            date = birth_info.get('date', 'Unknown')
+            time = birth_info.get('time', 'Unknown')
+            location = birth_info.get('location_name', birth_info.get('location', 'Unknown'))
+
+            logger.info(f"Extracted birth details - Name: {name}, Date: {date}, Time: {time}, Location: {location}")
+
+            prompt += f"Name: {name}\n"
+            prompt += f"Date: {date}\n"
+            prompt += f"Time: {time}\n"
+            prompt += f"Location: {location}\n\n"
 
         # Add planetary positions
         if "planets" in chart_data:
@@ -1328,6 +1529,63 @@ Chart Data:
 Be specific with planetary positions and astrological principles."""
 
         return prompt
+
+    def _build_chat_prompt_template(self) -> str:
+        """Build template for chat prompt."""
+        return """You are an expert Vedic astrologer. Answer the following question about this birth chart:
+
+Chart Data:
+{chart_data}
+
+Previous Conversation:
+{conversation_history}
+
+Question: {question}
+
+Please provide a detailed answer based on Vedic astrology principles and the chart data above."""
+
+    def _build_compatibility_prompt_template(self) -> str:
+        """Build template for compatibility analysis prompt."""
+        return """Provide a comprehensive Vedic astrology compatibility analysis between these two birth charts:
+
+Primary Chart:
+{primary_chart}
+
+Partner Chart:
+{partner_chart}
+
+Focus Areas: {focus_areas}
+
+Please analyze:
+1. **Overall Compatibility Score** - Based on Guna Milan and synastry
+2. **Emotional Compatibility** - Moon and Venus connections
+3. **Mental Compatibility** - Mercury and communication styles
+4. **Physical Compatibility** - Mars and attraction factors
+5. **Long-term Potential** - Saturn and commitment indicators
+6. **Challenge Areas** - Potential conflicts and how to navigate them
+7. **Strengths** - Natural harmonies and supportive factors
+
+Use traditional Vedic astrology principles including Guna Milan, Manglik Dosha, and planetary aspects."""
+
+    def _build_match_horoscope_prompt_template(self) -> str:
+        """Build template for match horoscope prompt."""
+        return """Perform a traditional Vedic astrology matchmaking analysis (Kundali Milan) between these two birth charts using the Ashtakoot (8-fold) system:
+
+Primary Chart:
+{primary_chart}
+
+Partner Chart:
+{partner_chart}
+
+Please provide:
+1. **Ashtakoot Scores** - Detailed breakdown of all 8 Kutas
+2. **Total Compatibility Score** - Out of 36 points
+3. **Manglik Dosha Analysis** - For both charts
+4. **Nadi Dosha Check** - And remedies if present
+5. **Bhakoot Analysis** - Sign compatibility
+6. **Recommendations** - Marriage suitability and timing
+
+Follow traditional Vedic matchmaking principles strictly."""
 
     def _build_chat_prompt(self, chart_data: Dict[str, Any], question: str, history: List[Dict[str, str]]) -> str:
         """Build prompt for chat response."""

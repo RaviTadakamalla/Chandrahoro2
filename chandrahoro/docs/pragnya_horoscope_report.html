@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vedic Horoscope - Pragnya</title>
+    <style>
+        :root {
+            --primary: #8B4513;
+            --secondary: #D4AF37;
+            --accent: #CD853F;
+            --bg-light: #FFF8DC;
+            --bg-cream: #FFFEF0;
+            --text-dark: #2C1810;
+            --exalted: #228B22;
+            --debilitated: #DC143C;
+            --own-sign: #006400;
+            --vargottama: #FFD700;
+            --current-dasha: #FF8C00;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, var(--bg-cream) 0%, var(--bg-light) 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 30px rgba(139, 69, 19, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #5D2E0C 100%);
+            color: var(--secondary);
+            text-align: center;
+            padding: 30px 20px;
+            border-bottom: 5px solid var(--secondary);
+        }
+        
+        .sanskrit {
+            font-size: 1.2em;
+            color: #FFE4B5;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            color: #DEB887;
+        }
+        
+        .section {
+            padding: 25px;
+            border-bottom: 2px solid var(--bg-light);
+        }
+        
+        .section-title {
+            color: var(--primary);
+            font-size: 1.5em;
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: "॥";
+            color: var(--secondary);
+        }
+        
+        .section-title::after {
+            content: "॥";
+            color: var(--secondary);
+        }
+        
+        .birth-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .detail-item {
+            background: var(--bg-light);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 0.9em;
+        }
+        
+        .detail-value {
+            font-size: 1.1em;
+            margin-top: 3px;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .chart-wrapper {
+            text-align: center;
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .south-indian-chart {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            margin: 0 auto;
+            border: 3px solid var(--primary);
+            background: var(--bg-cream);
+        }
+        
+        .chart-cell {
+            border: 1px solid var(--accent);
+            padding: 5px;
+            font-size: 0.75em;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+        
+        .chart-center {
+            grid-column: 2 / 4;
+            grid-row: 2 / 4;
+            background: linear-gradient(135deg, var(--bg-light) 0%, #FFF 100%);
+            font-size: 0.85em;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        .sign-name {
+            font-size: 0.7em;
+            color: var(--accent);
+            position: absolute;
+            top: 2px;
+            left: 4px;
+        }
+        
+        .planet {
+            margin: 1px 0;
+            font-weight: bold;
+        }
+        
+        .planet.retrograde::after {
+            content: " ℞";
+            color: var(--debilitated);
+            font-size: 0.8em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        
+        th, td {
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        th {
+            background: linear-gradient(135deg, var(--primary) 0%, #6B3E26 100%);
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: var(--bg-light);
+        }
+        
+        tr:hover {
+            background: #FFE4B5;
+        }
+        
+        .current-dasha {
+            background: var(--current-dasha) !important;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .dignity-own { color: var(--own-sign); font-weight: bold; }
+        .dignity-exalted { color: var(--exalted); font-weight: bold; }
+        .dignity-debilitated { color: var(--debilitated); font-weight: bold; }
+        .dignity-friendly { color: #4169E1; }
+        .dignity-enemy { color: #B22222; }
+        
+        .yoga-card {
+            background: linear-gradient(135deg, var(--bg-light) 0%, #FFF 100%);
+            border: 2px solid var(--secondary);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .yoga-name {
+            font-size: 1.2em;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .yoga-planets {
+            color: var(--accent);
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .house-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .house-card {
+            background: var(--bg-cream);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 5px solid var(--secondary);
+        }
+        
+        .house-number {
+            font-size: 1.3em;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .house-sign {
+            color: var(--accent);
+            font-style: italic;
+        }
+        
+        .interpretation {
+            background: var(--bg-cream);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid var(--secondary);
+        }
+        
+        .interpretation h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, var(--primary) 0%, #5D2E0C 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .summary-box h4 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .summary-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .summary-label {
+            font-size: 0.85em;
+            color: #DEB887;
+        }
+        
+        .summary-value {
+            font-size: 1.1em;
+            color: var(--secondary);
+            font-weight: bold;
+        }
+        
+        footer {
+            background: var(--primary);
+            color: var(--secondary);
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8em; }
+            .section { padding: 15px; }
+            .chart-cell { font-size: 0.65em; }
+        }
+        
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body {
+                padding: 0;
+                margin: 0;
+                background: white;
+            }
+            .container { 
+                box-shadow: none;
+                max-width: 100%;
+                width: 100%;
+            }
+            .section { 
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .yoga-card, .house-card, .interpretation {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .charts-container {
+                page-break-inside: avoid;
+            }
+            table {
+                page-break-inside: auto;
+            }
+            tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            thead {
+                display: table-header-group;
+            }
+            .house-grid {
+                page-break-inside: auto;
+            }
+            .summary-box {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            header, footer {
+                page-break-inside: avoid;
+            }
+        }
+        
+        .remedies-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .remedies-list li {
+            padding: 10px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            border-left: 4px solid var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="sanskrit">॥ श्री गणेशाय नमः ॥</div>
+            <div class="sanskrit">ॐ गुरवे नमः</div>
+            <h1>जन्म कुण्डली</h1>
+            <h1>Vedic Birth Chart</h1>
+            <div class="subtitle">Pragnya | प्रज्ञा</div>
+            <div class="subtitle" style="margin-top: 10px;">
+                Taurus Ascendant (वृषभ लग्न) • Aquarius Moon (कुम्भ राशि) • Shatabhisha Nakshatra (शतभिषा)
+            </div>
+        </header>
+
+        <div class="section">
+            <h2 class="section-title">Birth Details (जन्म विवरण)</h2>
+            <div class="birth-details">
+                <div class="detail-item">
+                    <div class="detail-label">Name (नाम)</div>
+                    <div class="detail-value">Pragnya</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Gender (लिंग)</div>
+                    <div class="detail-value">Female</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Date of Birth (जन्म तिथि)</div>
+                    <div class="detail-value">28 December 2003 (Sunday)</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Time of Birth (जन्म समय)</div>
+                    <div class="detail-value">4:50 PM IST</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Place of Birth (जन्म स्थान)</div>
+                    <div class="detail-value">Hyderabad, Telangana, India</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Lagna (लग्न)</div>
+                    <div class="detail-value">Taurus (वृषभ) 29° 25' 43"</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Rashi (राशि)</div>
+                    <div class="detail-value">Aquarius (कुम्भ)</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nakshatra (नक्षत्र)</div>
+                    <div class="detail-value">Shatabhisha Pada 4</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Birth Charts (कुण्डली चक्र)</h2>
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <div class="chart-title">Rashi Chart (D1) - राशि चक्र</div>
+                    <div class="south-indian-chart">
+                        <div class="chart-cell"><span class="sign-name">Pisces</span><span class="planet">♂ Mars 13°07'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Aries</span><span class="planet">☊ Rahu 25°24'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Taurus</span><span class="planet" style="color: var(--secondary);">ASC 29°25'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Gemini</span><span class="planet">♄ Sat ℞ 16°08'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Aquarius</span><span class="planet">☽ Moon 19°34'</span></div>
+                        <div class="chart-center">
+                            <strong style="color: var(--primary);">PRAGNYA</strong>
+                            <span>28 Dec 2003</span>
+                            <span>4:50 PM IST</span>
+                            <span>Hyderabad</span>
+                            <span style="margin-top: 5px; color: var(--accent);">Taurus Lagna</span>
+                        </div>
+                        <div class="chart-cell"><span class="sign-name">Cancer</span></div>
+                        <div class="chart-cell"><span class="sign-name">Capricorn</span><span class="planet">♀ Venus 14°58'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Leo</span><span class="planet">♃ Jup 24°55'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Sagittarius</span><span class="planet">☉ Sun 12°23'</span><span class="planet">☿ Mer ℞ 8°59'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Scorpio</span></div>
+                        <div class="chart-cell"><span class="sign-name">Libra</span><span class="planet">☋ Ketu 25°24'</span></div>
+                        <div class="chart-cell"><span class="sign-name">Virgo</span></div>
+                    </div>
+                </div>
+
+                <div class="chart-wrapper">
+                    <div class="chart-title">Navamsa Chart (D9) - नवांश चक्र</div>
+                    <div class="south-indian-chart">
+                        <div class="chart-cell"><span class="sign-name">Pisces</span><span class="planet">☽ Moon</span></div>
+                        <div class="chart-cell"><span class="sign-name">Aries</span></div>
+                        <div class="chart-cell"><span class="sign-name">Taurus</span><span class="planet">♀ Venus</span><span class="planet">☋ Ketu</span></div>
+                        <div class="chart-cell"><span class="sign-name">Gemini</span><span class="planet">☿ Mercury</span></div>
+                        <div class="chart-cell"><span class="sign-name">Aquarius</span><span class="planet">♄ Saturn</span></div>
+                        <div class="chart-center">
+                            <strong style="color: var(--primary);">NAVAMSA D9</strong>
+                            <span style="margin-top: 5px; color: var(--accent);">Virgo Navamsa Lagna</span>
+                        </div>
+                        <div class="chart-cell"><span class="sign-name">Cancer</span><span class="planet">☉ Sun</span></div>
+                        <div class="chart-cell"><span class="sign-name">Capricorn</span></div>
+                        <div class="chart-cell"><span class="sign-name">Leo</span></div>
+                        <div class="chart-cell"><span class="sign-name">Sagittarius</span></div>
+                        <div class="chart-cell"><span class="sign-name">Scorpio</span><span class="planet">♃ Jupiter</span><span class="planet">☊ Rahu</span></div>
+                        <div class="chart-cell"><span class="sign-name">Libra</span><span class="planet">♂ Mars</span></div>
+                        <div class="chart-cell"><span class="sign-name">Virgo</span><span class="planet" style="color: var(--secondary);">ASC</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Planetary Positions (ग्रह स्थिति)</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Planet</th>
+                            <th>Longitude</th>
+                            <th>Sign</th>
+                            <th>Degree</th>
+                            <th>House</th>
+                            <th>Nakshatra</th>
+                            <th>Pada</th>
+                            <th>Dignity</th>
+                            <th>Navamsa</th>
+                            <th>Karaka</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>☉ Sun</td>
+                            <td>252° 23' 12"</td>
+                            <td>Sagittarius</td>
+                            <td>12° 23'</td>
+                            <td>8th</td>
+                            <td>Moola</td>
+                            <td>4</td>
+                            <td class="dignity-friendly">Friendly</td>
+                            <td>Cancer</td>
+                            <td>GK</td>
+                        </tr>
+                        <tr>
+                            <td>☽ Moon</td>
+                            <td>319° 34' 21"</td>
+                            <td>Aquarius</td>
+                            <td>19° 34'</td>
+                            <td>10th</td>
+                            <td>Shatabhisha</td>
+                            <td>4</td>
+                            <td>Neutral</td>
+                            <td>Pisces</td>
+                            <td>AmK</td>
+                        </tr>
+                        <tr>
+                            <td>♂ Mars</td>
+                            <td>343° 07' 32"</td>
+                            <td>Pisces</td>
+                            <td>13° 07'</td>
+                            <td>11th</td>
+                            <td>U.Bhadrapada</td>
+                            <td>3</td>
+                            <td class="dignity-friendly">Friendly</td>
+                            <td>Libra</td>
+                            <td>PK</td>
+                        </tr>
+                        <tr>
+                            <td>☿ Mercury ℞</td>
+                            <td>248° 59' 50"</td>
+                            <td>Sagittarius</td>
+                            <td>8° 59'</td>
+                            <td>8th</td>
+                            <td>Moola</td>
+                            <td>3</td>
+                            <td class="dignity-enemy">Enemy</td>
+                            <td>Gemini</td>
+                            <td>DK</td>
+                        </tr>
+                        <tr>
+                            <td>♃ Jupiter</td>
+                            <td>144° 55' 34"</td>
+                            <td>Leo</td>
+                            <td>24° 55'</td>
+                            <td>4th</td>
+                            <td>P.Phalguni</td>
+                            <td>4</td>
+                            <td class="dignity-friendly">Friendly</td>
+                            <td>Scorpio</td>
+                            <td>AK</td>
+                        </tr>
+                        <tr>
+                            <td>♀ Venus</td>
+                            <td>284° 58' 04"</td>
+                            <td>Capricorn</td>
+                            <td>14° 58'</td>
+                            <td>9th</td>
+                            <td>Shravana</td>
+                            <td>2</td>
+                            <td class="dignity-friendly">Friendly</td>
+                            <td>Taurus</td>
+                            <td>MK</td>
+                        </tr>
+                        <tr>
+                            <td>♄ Saturn ℞</td>
+                            <td>076° 08' 01"</td>
+                            <td>Gemini</td>
+                            <td>16° 08'</td>
+                            <td>2nd</td>
+                            <td>Ardra</td>
+                            <td>3</td>
+                            <td class="dignity-friendly">Friendly</td>
+                            <td>Aquarius</td>
+                            <td>BK</td>
+                        </tr>
+                        <tr>
+                            <td>☊ Rahu</td>
+                            <td>025° 24' 26"</td>
+                            <td>Aries</td>
+                            <td>25° 24'</td>
+                            <td>12th</td>
+                            <td>Bharani</td>
+                            <td>4</td>
+                            <td>Neutral</td>
+                            <td>Scorpio</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>☋ Ketu</td>
+                            <td>205° 24' 26"</td>
+                            <td>Libra</td>
+                            <td>25° 24'</td>
+                            <td>6th</td>
+                            <td>Vishakha</td>
+                            <td>2</td>
+                            <td>Neutral</td>
+                            <td>Taurus</td>
+                            <td>-</td>
+                        </tr>
+                        <tr style="background: #FFE4B5;">
+                            <td><strong>Ascendant</strong></td>
+                            <td>059° 25' 43"</td>
+                            <td>Taurus</td>
+                            <td>29° 25'</td>
+                            <td>1st</td>
+                            <td>Mrigashira</td>
+                            <td>2</td>
+                            <td>-</td>
+                            <td>Virgo</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px; padding: 15px; background: var(--bg-light); border-radius: 8px;">
+                <strong>Jaimini Karaka:</strong> AK=Atmakaraka(Soul) • AmK=Amatyakaraka(Career) • BK=Bhratrikaraka(Siblings) • MK=Matrikaraka(Mother) • PK=Putrakaraka(Children) • GK=Gnatikaraka(Rivals) • DK=Darakaraka(Spouse)
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Vimsottari Dasha (विंशोत्तरी दशा)</h2>
+            <p style="margin-bottom: 15px;">Moon Nakshatra: <strong>Shatabhisha</strong> (Lord: Rahu)</p>
+            
+            <table>
+                <thead>
+                    <tr><th>Mahadasha</th><th>Duration</th><th>Start</th><th>End</th><th>Position</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>☊ Rahu</td><td>18 Years</td><td>Dec 2003</td><td>Jul 2004</td><td>12th House</td><td>✓ Completed</td></tr>
+                    <tr><td>♃ Jupiter</td><td>16 Years</td><td>Jul 2004</td><td>Jul 2020</td><td>4th House (AK)</td><td>✓ Completed</td></tr>
+                    <tr class="current-dasha"><td>♄ Saturn ℞</td><td>19 Years</td><td>Jul 2020</td><td>Jul 2039</td><td>2nd House (BK)</td><td>⭐ CURRENT</td></tr>
+                    <tr><td>☿ Mercury ℞</td><td>17 Years</td><td>Jul 2039</td><td>Jul 2056</td><td>8th House (DK)</td><td>Upcoming</td></tr>
+                    <tr><td>☋ Ketu</td><td>7 Years</td><td>Jul 2056</td><td>Jul 2063</td><td>6th House</td><td>Upcoming</td></tr>
+                    <tr><td>♀ Venus</td><td>20 Years</td><td>Jul 2063</td><td>Jul 2083</td><td>9th House (MK)</td><td>Upcoming</td></tr>
+                    <tr><td>☉ Sun</td><td>6 Years</td><td>Jul 2083</td><td>Jul 2089</td><td>8th House (GK)</td><td>Upcoming</td></tr>
+                    <tr><td>☽ Moon</td><td>10 Years</td><td>Jul 2089</td><td>Jul 2099</td><td>10th House (AmK)</td><td>Upcoming</td></tr>
+                    <tr><td>♂ Mars</td><td>7 Years</td><td>Jul 2099</td><td>Jul 2106</td><td>11th House (PK)</td><td>Upcoming</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="color: var(--primary); margin-top: 25px; margin-bottom: 15px;">Current Saturn Antardashas</h3>
+            <table>
+                <thead><tr><th>Antardasha</th><th>Start</th><th>End</th><th>Duration</th></tr></thead>
+                <tbody>
+                    <tr><td>Saturn-Saturn</td><td>Jul 2020</td><td>Jul 2023</td><td>3 yr</td></tr>
+                    <tr><td>Saturn-Mercury</td><td>Jul 2023</td><td>Mar 2026</td><td>2 yr 8 mo</td></tr>
+                    <tr class="current-dasha"><td>Saturn-Ketu</td><td>Mar 2026</td><td>Apr 2027</td><td>1 yr 1 mo</td></tr>
+                    <tr><td>Saturn-Venus</td><td>Apr 2027</td><td>Jun 2030</td><td>3 yr 2 mo</td></tr>
+                    <tr><td>Saturn-Sun</td><td>Jun 2030</td><td>Jun 2031</td><td>11 mo</td></tr>
+                    <tr><td>Saturn-Moon</td><td>Jun 2031</td><td>Jan 2033</td><td>1 yr 7 mo</td></tr>
+                    <tr><td>Saturn-Mars</td><td>Jan 2033</td><td>Feb 2034</td><td>1 yr 1 mo</td></tr>
+                    <tr><td>Saturn-Rahu</td><td>Feb 2034</td><td>Dec 2036</td><td>2 yr 10 mo</td></tr>
+                    <tr><td>Saturn-Jupiter</td><td>Dec 2036</td><td>Jul 2039</td><td>2 yr 6 mo</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Yoga Analysis (योग विश्लेषण)</h2>
+            
+            <div class="yoga-card">
+                <div class="yoga-name">🌟 Gajakesari Yoga</div>
+                <div class="yoga-planets">Moon in 10th House | Jupiter in 4th House - Mutual Kendras</div>
+                <p>One of the most auspicious yogas. Bestows intelligence, good reputation, lasting fame, wealth, and success. The native will be eloquent, virtuous, and achieve positions of respect in society.</p>
+            </div>
+
+            <div class="yoga-card">
+                <div class="yoga-name">☀️ Budha-Aditya Yoga</div>
+                <div class="yoga-planets">Sun + Mercury conjunct in Sagittarius (8th House)</div>
+                <p>Grants intelligence, communication skills, and analytical abilities. Being in 8th house provides deep research abilities, interest in occult or hidden knowledge, and capacity for transformation through learning.</p>
+            </div>
+
+            <div class="yoga-card">
+                <div class="yoga-name">🏠 Dhana Yoga</div>
+                <div class="yoga-planets">9th Lord Saturn in 2nd House | Lagna Lord Venus in 9th House</div>
+                <p>Connection between wealth house and fortune house creates potential for wealth accumulation through righteous means. The 9th lord in 2nd brings fortune to family wealth.</p>
+            </div>
+
+            <div class="yoga-card">
+                <div class="yoga-name">🎯 Ketu in 6th House</div>
+                <div class="yoga-planets">Ketu in 6th House (Libra)</div>
+                <p>Favorable placement - helps overcome enemies, diseases, and debts. Natural ability to overcome obstacles and competition. Spiritual solutions to material problems.</p>
+            </div>
+
+            <div class="yoga-card">
+                <div class="yoga-name">💫 Moon Digbala</div>
+                <div class="yoga-planets">Moon in 10th House (Aquarius)</div>
+                <p>Moon gains directional strength in 10th house, enhancing career prospects, public image, and reputation. Success in public-facing careers and recognition for work.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">House Analysis (भाव विश्लेषण)</h2>
+            <div class="house-grid">
+                <div class="house-card">
+                    <div class="house-number">1st House (Lagna)</div>
+                    <div class="house-sign">Taurus • Lord: Venus (in 9th)</div>
+                    <p>Stable, patient, artistic personality. Venus as lagna lord in 9th blesses with fortune, grace, and love for higher knowledge.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">2nd House</div>
+                    <div class="house-sign">Gemini • Saturn ℞</div>
+                    <p>Delayed but stable wealth. Speech measured and serious. Wealth through hard work and communication fields.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">3rd House</div>
+                    <div class="house-sign">Cancer • Lord: Moon (in 10th)</div>
+                    <p>Courage and communication connected to career. Strong emotional connection with siblings. Creative abilities.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">4th House</div>
+                    <div class="house-sign">Leo • Jupiter</div>
+                    <p>Excellent for education, domestic happiness, property. Strong moral foundation. Interest in teaching and counseling.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">5th House</div>
+                    <div class="house-sign">Virgo • Lord: Mercury (in 8th)</div>
+                    <p>Analytical intelligence. Interest in research, psychology, investigative studies. Creative expression unconventional.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">6th House</div>
+                    <div class="house-sign">Libra • Ketu</div>
+                    <p>Ability to defeat enemies through spiritual means. Natural healer. Service-oriented fields favorable.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">7th House</div>
+                    <div class="house-sign">Scorpio • Lord: Mars (in 11th)</div>
+                    <p>Marriage connected to social network and gains. Spouse energetic and ambitious. Intense partnerships.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">8th House</div>
+                    <div class="house-sign">Sagittarius • Sun, Mercury ℞</div>
+                    <p>Interest in research, occult, psychology. Good for inheritance. Transformative events bring wisdom.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">9th House</div>
+                    <div class="house-sign">Capricorn • Venus</div>
+                    <p>Excellent placement. Love for higher learning, spirituality with artistic approach. Fortune through creative pursuits.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">10th House</div>
+                    <div class="house-sign">Aquarius • Moon</div>
+                    <p>Public recognition, caring approach to career. May involve public service, healthcare, counseling.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">11th House</div>
+                    <div class="house-sign">Pisces • Mars</div>
+                    <p>Excellent for gains. Energetic pursuit of goals, influential friends, achievement of ambitions.</p>
+                </div>
+                <div class="house-card">
+                    <div class="house-number">12th House</div>
+                    <div class="house-sign">Aries • Rahu</div>
+                    <p>Foreign connections, interest in spirituality. May settle abroad. Vivid dreams, active subconscious.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Life Area Analysis (जीवन क्षेत्र)</h2>
+            
+            <div class="interpretation">
+                <h4>🧘 Personality</h4>
+                <p>Taurus rising at 29°25' with Mrigashira nakshatra gives classic Venusian qualities - attractive appearance, graceful demeanor, appreciation for beauty. Moon in 10th adds emotional depth and public appeal. Jupiter's aspect enhances wisdom and philosophical outlook.</p>
+            </div>
+
+            <div class="interpretation">
+                <h4>📚 Education & Career</h4>
+                <p>Jupiter in 4th house promises quality education. Mercury as 5th lord in 8th indicates research-oriented subjects. Moon in 10th with Jupiter's aspect creates strong career potential. Favorable areas: counseling, psychology, healthcare, research, finance, art, music, teaching.</p>
+            </div>
+
+            <div class="interpretation">
+                <h4>💰 Wealth</h4>
+                <p>Saturn in 2nd indicates wealth through persistent effort. Dhana yoga promises fortunate accumulation through righteous means. Financial discipline essential. Property investments favorable. Wealth likely to grow substantially after age 30-35.</p>
+            </div>
+
+            <div class="interpretation">
+                <h4>💕 Marriage</h4>
+                <p>Mercury as Darakaraka suggests intelligent, communicative spouse. Mars as 7th lord in 11th indicates meeting through friends or social networks. Marriage supportive of career. Current Saturn period may delay but ensures mature partner.</p>
+            </div>
+
+            <div class="interpretation">
+                <h4>⏰ Current Period (Saturn 2020-2039)</h4>
+                <p>Saturn Mahadasha focuses on discipline, responsibility, and gradual achievement. Saturn rules 9th and 10th houses - career and dharma-focused period. Key themes: building solid career foundations, developing communication skills, creating long-term stability. Rewards hard work and ethical conduct.</p>
+            </div>
+
+            <div class="interpretation">
+                <h4>📅 Favorable Periods</h4>
+                <p><strong>Good:</strong> Saturn-Venus (2027-2030), Saturn-Jupiter (2036-2039), Venus Mahadasha (2063-2083)</p>
+                <p><strong>Caution:</strong> Saturn-Ketu (2026-2027), Saturn-Rahu (2034-2036)</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Remedies (उपाय)</h2>
+            <div class="summary-box">
+                <h4>Recommended Practices</h4>
+                <ul class="remedies-list">
+                    <li><strong>For Saturn:</strong> Recite "Om Sham Shanaishcharaya Namah" 108 times on Saturdays. Serve elderly. Light sesame oil lamp Saturday evenings.</li>
+                    <li><strong>For Venus:</strong> Recite "Om Shukraya Namah" on Fridays. Respect women. Practice artistic pursuits.</li>
+                    <li><strong>For Jupiter:</strong> Recite "Om Gurave Namah" on Thursdays. Respect teachers. Feed birds.</li>
+                    <li><strong>General:</strong> Regular meditation and pranayama. Visit temples on birth nakshatra days. Practice gratitude.</li>
+                </ul>
+            </div>
+            <div class="interpretation">
+                <h4>Gemstones (Consult astrologer before wearing)</h4>
+                <p><strong>Primary:</strong> Diamond or White Sapphire for Venus - silver ring, right ring finger, Friday</p>
+                <p><strong>Secondary:</strong> Yellow Sapphire for Jupiter - gold ring, right index finger, Thursday</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Summary (सारांश)</h2>
+            <div class="summary-box">
+                <h4>Key Chart Features</h4>
+                <div class="summary-grid">
+                    <div class="summary-item"><div class="summary-label">Ascendant</div><div class="summary-value">Taurus 29°25'</div></div>
+                    <div class="summary-item"><div class="summary-label">Moon Sign</div><div class="summary-value">Aquarius</div></div>
+                    <div class="summary-item"><div class="summary-label">Nakshatra</div><div class="summary-value">Shatabhisha Pada 4</div></div>
+                    <div class="summary-item"><div class="summary-label">Navamsa Lagna</div><div class="summary-value">Virgo</div></div>
+                    <div class="summary-item"><div class="summary-label">Atmakaraka</div><div class="summary-value">Jupiter</div></div>
+                    <div class="summary-item"><div class="summary-label">Darakaraka</div><div class="summary-value">Mercury</div></div>
+                    <div class="summary-item"><div class="summary-label">Current Dasha</div><div class="summary-value">Saturn (2020-2039)</div></div>
+                    <div class="summary-item"><div class="summary-label">Major Yogas</div><div class="summary-value">Gajakesari, Budha-Aditya</div></div>
+                </div>
+            </div>
+            <table style="margin-top: 20px;">
+                <thead><tr><th>Category</th><th>Assessment</th><th>Key Factors</th></tr></thead>
+                <tbody>
+                    <tr><td>Strongest Planet</td><td style="color: var(--exalted);">Jupiter</td><td>Atmakaraka, Kendra, Gajakesari</td></tr>
+                    <tr><td>Most Beneficial</td><td style="color: var(--exalted);">Venus</td><td>Lagna lord in 9th house</td></tr>
+                    <tr><td>Career</td><td>Strong</td><td>Moon in 10th, Jupiter aspects 10th</td></tr>
+                    <tr><td>Wealth</td><td>Good (Delayed)</td><td>Saturn in 2nd, Dhana yoga</td></tr>
+                    <tr><td>Marriage</td><td>Favorable</td><td>Mars (7L) in 11th, Venus in 9th</td></tr>
+                    <tr><td>Spiritual</td><td style="color: var(--exalted);">High</td><td>Venus in 9th, 8th house planets</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            <div class="sanskrit">॥ शुभं भवतु ॥</div>
+            <p>May this knowledge guide you on your life's journey</p>
+            <p style="font-size: 0.9em; color: #DEB887;">Parashara Jyotish | Lahiri Ayanamsa | Whole Sign Houses</p>
+            <p style="font-size: 0.85em; color: #CD853F; margin-top: 10px;">Generated: November 2025 | Consult qualified astrologer for specific guidance</p>
+            <div class="sanskrit" style="margin-top: 15px;">॥ ॐ तत् सत् ॥</div>
+        </footer>
+    </div>
+</body>
+</html>

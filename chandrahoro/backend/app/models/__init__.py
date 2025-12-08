@@ -11,6 +11,9 @@ from app.models.llm_models import (
     LlmConfig, LlmSharedKey, LlmSharedKeyUsage, LlmAdminDefaults,
     LlmUserAccess, LlmAuditLog, LlmProvider, ResponseFormat, AuditAction
 )
+from app.models.ai_prompt_models import (
+    AiPromptConfig, AiPromptVersion, AiModuleType, PromptScope, DEFAULT_PROMPTS
+)
 from app.models.subscription_models import Subscription, SubscriptionTier, SubscriptionStatus
 from app.models.cache_models import ChartCache, CacheType, UserRequest
 
@@ -58,6 +61,12 @@ __all__ = [
     "LlmProvider",
     "ResponseFormat",
     "AuditAction",
+    # AI Prompts
+    "AiPromptConfig",
+    "AiPromptVersion",
+    "AiModuleType",
+    "PromptScope",
+    "DEFAULT_PROMPTS",
     # Subscription & Caching
     "Subscription",
     "SubscriptionTier",

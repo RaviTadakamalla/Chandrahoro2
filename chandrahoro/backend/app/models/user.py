@@ -59,6 +59,7 @@ class User(BaseModel):
     llm_access = relationship("LlmUserAccess", back_populates="user", cascade="all, delete-orphan", uselist=False)
     subscription = relationship("Subscription", back_populates="user", cascade="all, delete-orphan", uselist=False)
     request_history = relationship("UserRequest", back_populates="user", cascade="all, delete-orphan")
+    ai_prompt_configs = relationship("AiPromptConfig", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

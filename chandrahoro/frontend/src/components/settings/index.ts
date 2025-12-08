@@ -1,6 +1,6 @@
 /**
  * Settings Components Index
- * 
+ *
  * Centralized exports for all settings-related components.
  */
 
@@ -11,3 +11,4 @@ export { default as AppearanceSettings } from './AppearanceSettings';
 export { default as ReadingToneSettings } from './ReadingToneSettings';
 export { default as NotificationSettings } from './NotificationSettings';
 export { default as AccountSettings } from './AccountSettings';
+export { default as AiPromptsSettings } from './AiPromptsSettings';

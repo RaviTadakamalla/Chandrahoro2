@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { API_URL } from '@/lib/constants';
 import type { AiModuleMeta, AiModuleProps } from '@/lib/ai/types';
+import { HoroscopeReport, type HoroscopeReportData } from '@/components/horoscope/HoroscopeReport';
+import { useAiReportCache } from '@/hooks/useAiReportCache';
 
 // Module metadata
 export const meta: AiModuleMeta = {
@@ -36,17 +38,53 @@ interface InterpretationResponse {
   };
 }
 
+interface CachedReportData {
+  outputFormat: 'markdown' | 'json';
+  reportData: HoroscopeReportData | null;
+  interpretation: string;
+}
+
 // Main component
 export default function ChartInterpretationModule({ chartData, user, onClose }: AiModuleProps) {
   const [interpretation, setInterpretation] = useState<string>('');
+  const [reportData, setReportData] = useState<HoroscopeReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [outputFormat, setOutputFormat] = useState<'markdown' | 'json'>('markdown');
+
+  // Use the AI report cache hook
+  const { cachedData, isCached, saveToCache } = useAiReportCache<CachedReportData>({
+    moduleId: 'chart-interpretation',
+    chartData,
+    user,
+  });
+
+  // Load cached report on mount
+  useEffect(() => {
+    if (cachedData) {
+      console.log('[chart-interpretation] Restoring cached report...');
+      setOutputFormat(cachedData.outputFormat);
+      setReportData(cachedData.reportData);
+      setInterpretation(cachedData.interpretation);
+    }
+  }, [cachedData]);
 
   const generateInterpretation = async () => {
     if (!chartData || !user) return;
 
     setLoading(true);
     setError('');
+
+    // Debug: Log the chart data being sent
+    console.log('=== Chart Data Being Sent to API ===');
+    console.log('Full chartData:', chartData);
+    console.log('Birth Info:', chartData.birth_info);
+    if (chartData.birth_info) {
+      console.log('  Name:', chartData.birth_info.name);
+      console.log('  Date:', chartData.birth_info.date);
+      console.log('  Time:', chartData.birth_info.time);
+      console.log('  Location:', chartData.birth_info.location_name);
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/v1/ai/interpret`, {
@@ -81,8 +119,72 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
       const result: InterpretationResponse = await response.json();
 
       if (result.success && result.content) {
-        setInterpretation(result.content);
+        console.log('=== AI Chart Interpretation Debug ===');
+        console.log('Raw content type:', typeof result.content);
+        console.log('Raw content length:', result.content.length);
+        console.log('First 500 chars:', result.content.substring(0, 500));
+
+        // Try to parse as JSON first
+        try {
+          let contentToParse = result.content.trim();
+
+          // Check if content is wrapped in markdown code blocks
+          const jsonCodeBlockMatch = contentToParse.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+          if (jsonCodeBlockMatch) {
+            console.log('Found JSON in markdown code block, extracting...');
+            contentToParse = jsonCodeBlockMatch[1].trim();
+            console.log('Extracted content (first 200 chars):', contentToParse.substring(0, 200));
+          }
+
+          // Check if it starts with { or [ (valid JSON)
+          if (!contentToParse.startsWith('{') && !contentToParse.startsWith('[')) {
+            console.log('Content does not start with { or [, treating as markdown');
+            throw new Error('Not JSON format');
+          }
+
+          console.log('Attempting to parse JSON...');
+          const jsonData = JSON.parse(contentToParse);
+          console.log('✅ JSON parsed successfully!');
+          console.log('Parsed data keys:', Object.keys(jsonData));
+
+          // Validate that it has the expected structure
+          if (!jsonData.birth_details || !jsonData.planetary_positions) {
+            console.warn('⚠️ JSON missing expected fields, treating as markdown');
+            throw new Error('Invalid JSON structure');
+          }
+
+          console.log('✅ JSON structure validated');
+          console.log('Setting reportData and outputFormat to json');
+
+          setReportData(jsonData);
+          setOutputFormat('json');
+          setInterpretation(''); // Clear any previous markdown
+
+          // Cache the report using the hook
+          saveToCache({
+            outputFormat: 'json' as const,
+            reportData: jsonData,
+            interpretation: '',
+          });
+
+          console.log('✅ State updated successfully');
+        } catch (parseError) {
+          console.log('❌ JSON parsing failed:', parseError);
+          console.log('Treating as markdown instead');
+          // If not JSON, treat as markdown
+          setInterpretation(result.content);
+          setOutputFormat('markdown');
+          setReportData(null); // Clear any previous JSON data
+
+          // Cache the markdown report using the hook
+          saveToCache({
+            outputFormat: 'markdown' as const,
+            reportData: null,
+            interpretation: result.content,
+          });
+        }
       } else {
+        console.log('❌ No content in response or success=false');
         setError(result.error || 'Failed to generate interpretation');
       }
     } catch (err) {
@@ -92,9 +194,17 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
     }
   };
 
-  useEffect(() => {
-    generateInterpretation();
-  }, [chartData, user]);
+  // Check if we have any existing report
+  const hasExistingReport = !!(reportData || interpretation);
+
+  // Debug logging for render
+  console.log('=== Render Debug ===');
+  console.log('loading:', loading);
+  console.log('outputFormat:', outputFormat);
+  console.log('reportData:', reportData ? 'exists' : 'null');
+  console.log('interpretation:', interpretation ? 'exists' : 'empty');
+  console.log('reportData keys:', reportData ? Object.keys(reportData) : 'N/A');
+  console.log('hasExistingReport:', hasExistingReport);
 
   return (
     <div className="space-y-6">
@@ -112,7 +222,7 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
           size="sm"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Regenerate
+          {hasExistingReport ? 'Regenerate' : 'Generate Report'}
         </Button>
       </div>
 
@@ -139,7 +249,29 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
               <Loader2 className="h-8 w-8 animate-spin text-saffron-500" />
               <span className="ml-3 text-gray-600">Analyzing your chart...</span>
             </div>
-          ) : interpretation ? (
+          ) : reportData && outputFormat === 'json' ? (
+            <>
+              {(() => {
+                try {
+                  return <HoroscopeReport data={reportData} />;
+                } catch (renderError) {
+                  console.error('Error rendering HoroscopeReport:', renderError);
+                  return (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded">
+                      <strong className="text-red-700">Error rendering report:</strong>
+                      <pre className="mt-2 text-xs overflow-auto">{String(renderError)}</pre>
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-sm">View raw data</summary>
+                        <pre className="mt-2 text-xs overflow-auto max-h-96">
+                          {JSON.stringify(reportData, null, 2)}
+                        </pre>
+                      </details>
+                    </div>
+                  );
+                }
+              })()}
+            </>
+          ) : interpretation && outputFormat === 'markdown' ? (
             <div className="prose prose-gray dark:prose-invert max-w-none">
               <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
                 {interpretation}
@@ -148,7 +280,17 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
           ) : (
             <div className="text-center py-12 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Click "Generate" to create your AI interpretation</p>
+              <p className="text-lg mb-2">No AI interpretation generated yet</p>
+              <p className="text-sm mb-6">Click "Generate Report" above to create your personalized cosmic blueprint</p>
+              <Button
+                onClick={generateInterpretation}
+                disabled={loading}
+                variant="default"
+                size="lg"
+              >
+                <FileText className="h-5 w-5 mr-2" />
+                Generate AI Interpretation
+              </Button>
             </div>
           )}
         </CardContent>

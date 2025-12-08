@@ -12,8 +12,8 @@ vedicastro==0.2.1
 # Install separately: pip install git+https://github.com/diliprk/flatlib.git@sidereal#egg=flatlib
 
 # Data validation and serialization
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
 
 # HTTP client for external APIs (GeoNames, etc.)
 httpx==0.25.2
@@ -27,7 +27,7 @@ pytz==2023.3
 reportlab==4.0.7
 
 # Image processing for chart exports
-Pillow==10.1.0
+Pillow>=10.1.0
 
 # Caching and session management
 redis==5.0.1
@@ -38,11 +38,11 @@ anthropic==0.71.0
 openai==1.54.0
 
 # Database (if needed for user data)
-sqlalchemy==2.0.23
-alembic==1.13.1
-asyncpg==0.29.0  # PostgreSQL async driver
-aiomysql==0.2.0  # MySQL async driver
-pymysql==1.1.0   # MySQL driver for SQLAlchemy
+sqlalchemy>=2.0.23
+alembic>=1.13.1
+# asyncpg==0.29.0  # PostgreSQL async driver - Skip for Python 3.13 compatibility
+aiomysql>=0.2.0  # MySQL async driver
+pymysql>=1.1.0   # MySQL driver for SQLAlchemy
 
 # Environment variables
 python-dotenv==1.0.0
