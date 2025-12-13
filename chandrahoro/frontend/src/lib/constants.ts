@@ -9,7 +9,11 @@
  */
 
 // API Configuration
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// In production, use empty string for relative URLs (same origin)
+// In development, fall back to localhost:8000
+const isServer = typeof window === 'undefined';
+const isDev = process.env.NODE_ENV === 'development';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000' : '');
 export const API_URL = API_BASE_URL; // Legacy alias for compatibility
 export const API_TIMEOUT = 30000; // 30 seconds
 export const API_RETRY_ATTEMPTS = 3;

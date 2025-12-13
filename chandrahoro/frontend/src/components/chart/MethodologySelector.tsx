@@ -63,7 +63,9 @@ export default function MethodologySelector({
 
   const fetchMethodologies = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // In production, use relative URL (empty string) for same-origin requests
+      const isDev = process.env.NODE_ENV === 'development';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000' : '');
       const response = await fetch(`${apiUrl}/api/v1/methodologies/`);
       const data = await response.json();
       setMethodologies(data.methodologies || []);
