@@ -250,7 +250,7 @@ export function PromptEditorDialog({ open, onClose, module, onSave }: PromptEdit
       const formData = new FormData();
       formData.append('file', sampleFormatFile);
 
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ai-prompts/${module.custom_prompt_id}/upload-sample-format`,
         {
@@ -287,7 +287,7 @@ export function PromptEditorDialog({ open, onClose, module, onSave }: PromptEdit
 
     setIsUploadingSample(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ai-prompts/${module.custom_prompt_id}/sample-format`,
         {

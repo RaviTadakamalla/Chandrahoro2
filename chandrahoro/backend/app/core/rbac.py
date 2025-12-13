@@ -35,17 +35,35 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
+    if not credentials:
+        logger.warning("No credentials provided")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
+    logger.debug(f"Token received, length: {len(token) if token else 0}")
     user_id = AuthService.validate_access_token(token)
-    
+
     if not user_id:
+        logger.warning("Token validation failed - invalid or expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    user = await AuthService.get_user_by_id(db, user_id)
+
+    logger.debug(f"Token valid, user_id: {user_id}")
+    try:
+        user = await AuthService.get_user_by_id(db, user_id)
+    except Exception as e:
+        logger.error(f"Database error fetching user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Database error: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

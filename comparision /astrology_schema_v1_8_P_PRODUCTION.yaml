@@ -1,0 +1,3806 @@
+# DocSpeak Domain Schema: Vedic Astrology (Jyotish) v1.8_P PRODUCTION
+# Version: 1.8_P
+# Created: 2025-12-08
+# Status: PRODUCTION READY - Predictive Engine Foundation
+
+metadata:
+  name: "astrology_v1.8_P"
+  domain: "Vedic Astrology / Jyotish (Primary) with Western Astrology (Secondary)"
+  version: "1.8_P"
+  description: |
+    KG Extraction optimized version with critical fixes for PDF ingestion:
+    - Standardized relationship names (relationship_types matches relationship_normalization)
+    - Added missing relationship types (IS_COMBUST, IS_RETROGRADE, IS_HEMMED_BY)
+    - Added passive voice extraction patterns for all major relationships
+    - Added "Lord of House" extraction patterns
+    - Added IAST transliteration aliases for Sanskrit terms
+    - ALL 14 entity types with complete properties
+    - ALL 30+ relationship types with extraction patterns
+    - Complete known_entities (13 planets, 12 signs, 12 houses, 28 nakshatras, 16 divisional charts)
+    - Full extraction pipeline with validation and post-processing
+    - Complete LifeArea hierarchy (10 parents + 66 children = 76 total)
+  sources:
+    - "Brihat Parashara Hora Shastra (BPHS)"
+    - "Jataka Parijata"
+    - "Phaladeepika"
+    - "Saravali"
+    - "Uttara Kalamrita"
+    - "BV Raman - How to Judge a Horoscope"
+    - "KN Rao - Learn Hindu Astrology Easily"
+  languages:
+    - "English"
+    - "Sanskrit (Devanagari & IAST transliteration)"
+  changes_from_v1:
+    - "Added InterpretationRule entity for conditional knowledge"
+    - "Added LifeArea entity with hierarchical structure"
+    - "Added Work entity for source attribution"
+    - "Added tradition attribute to support mixed Vedic/Western texts"
+    - "Enhanced extraction patterns for conditional statements"
+    - "Added Western planets (optional, for mixed libraries)"
+  changes_from_v1_7_P:
+    - "Added ConditionGroup entity for multi-condition logic"
+    - "Added condition_operator (AND/OR) to InterpretationRule"
+    - "Added applicable_lagna to InterpretationRule (ascendant-specific rules)"
+    - "Added functional_nature_override to InterpretationRule"
+    - "Added applies_to context filters to InterpretationRule"
+    - "Enhanced ASPECTS relationship with aspect_category, house_offset, orb_degrees, is_applying, strength"
+    - "Added planetary strength properties: strength_score, shadbala_points, strength_notes"
+    - "Added is_classical and source_texts to Yoga entity"
+    - "Added authority_level (1-5) to Work entity"
+    - "Added cancellation_strength to NEGATES relationship"
+    - "BREAKING: Removed Effect.category, replaced with linked_life_area"
+    - "BREAKING: Strict House naming enforcement (Nth House only)"
+    - "Normalized all aliases to lowercase and deduplicated"
+    - "Added schema_version tag to all entity types"
+
+
+# ENTITY TYPES
+
+entity_types:
+  # --------------------------------------------------------------------------
+  # Core Astrological Entities
+  # --------------------------------------------------------------------------
+  - name: "Planet"
+    label: "Planet"
+    description: "The 9 grahas/planets including luminaries and shadow planets (Vedic), plus outer planets (Western)"
+    aliases: ["graha", "ग्रह", "celestial body"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+        description: "Which astrological tradition uses this planet"
+      - name: "nature"
+        type: "string"
+        values: ["benefic", "malefic", "neutral", "conditional"]
+        description: "Benefic/malefic classification"
+      - name: "gender"
+        type: "string"
+        values: ["masculine", "feminine", "neutral", "eunuch"]
+        description: "Gender classification"
+      - name: "element"
+        type: "string"
+        values: ["fire", "earth", "air", "water", "ether"]
+        description: "Elemental nature (panchamahabhuta)"
+      - name: "caste"
+        type: "string"
+        values: ["Brahmin", "Kshatriya", "Vaishya", "Shudra", "Mleccha"]
+        description: "Varna classification"
+      - name: "guna"
+        type: "string"
+        values: ["sattvic", "rajasic", "tamasic"]
+        description: "Gunic quality"
+      - name: "deity"
+        type: "string"
+        description: "Presiding deity (devata)"
+      - name: "day_of_week"
+        type: "string"
+        description: "Day ruled by planet (vara)"
+      - name: "is_node"
+        type: "boolean"
+        description: "True for Rahu/Ketu (shadow planets)"
+      - name: "is_outer"
+        type: "boolean"
+        description: "True for Uranus/Neptune/Pluto (Western)"
+      - name: "psychological_role"
+        type: "string"
+        description: "Psychological/archetypal role (Western astrology) - NEW from v1.3"
+      - name: "is_retrograde"
+        type: "boolean"
+        description: "Planet is in retrograde motion (vakri). Extracted from text, not a fixed property."
+        extraction_note: "Dynamic state - varies per chart/context"
+      - name: "is_vargottama"
+        type: "boolean"
+        description: "Planet occupies same sign in rashi (D1) and navamsa (D9) charts."
+        extraction_note: "Dynamic state - varies per chart/context"
+      - name: "is_combust"
+        type: "boolean"
+        description: "Planet is combust (asta) due to proximity to Sun."
+        extraction_note: "Dynamic state - varies per chart/context"
+      - name: "combustion_degree"
+        type: "number"
+        description: "Degree proximity to Sun when combust (optional detail)"
+      - name: "strength_score"
+        type: "number"
+        range: [0, 100]
+        description: "Overall planetary strength percentage when explicitly mentioned in text"
+        extraction_note: "Extract only if source provides numeric strength assessment"
+      - name: "shadbala_points"
+        type: "number"
+        description: "Shadbala strength in rupas/points when explicitly mentioned"
+        extraction_note: "Extract only if source calculates Shadbala"
+      - name: "strength_notes"
+        type: "string"
+        description: "Textual description of strength factors (e.g., strong due to directional strength)"
+
+
+  - name: "Sign"
+    label: "Sign"
+    description: "The 12 zodiac signs (rashis)"
+    aliases: ["rashi", "राशि", "zodiac sign"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+      - name: "element"
+        type: "string"
+        values: ["fire", "earth", "air", "water"]
+        description: "Elemental nature"
+      - name: "modality"
+        type: "string"
+        values: ["cardinal", "fixed", "mutable"]
+        description: "Movable/fixed/dual classification"
+        aliases: ["chara", "sthira", "dvisvabhava", "quality"]
+      - name: "gender"
+        type: "string"
+        values: ["masculine", "feminine"]
+        description: "Gender classification"
+      - name: "body_part"
+        type: "string"
+        description: "Associated body part in Kalapurusha"
+      - name: "direction"
+        type: "string"
+        values: ["east", "south", "west", "north"]
+        description: "Directional strength"
+      - name: "guna"
+        type: "string"
+        values: ["sattvic", "rajasic", "tamasic"]
+        description: "Gunic quality"
+
+  - name: "House"
+    label: "House"
+    description: |
+      The 12 bhavas/houses in a horoscope.
+
+      CANONICAL NAMING v1.8_P - STRICTLY ENFORCED:
+      Canonical form: "Nth House" (e.g., "1st House", "2nd House", ... "12th House")
+      All extraction normalizes to canonical form - NO EXCEPTIONS
+      
+      Examples normalizing to "7th House":
+        "seventh house", "house 7", "7th bhava", "kalatra bhava", "saptama bhava"
+    aliases: ["bhava", "भाव"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+      - name: "number"
+        type: "integer"
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        description: "House number (1-12)"
+      - name: "category"
+        type: "string"
+        values: ["kendra", "trikona", "dusthana", "upachaya", "apoklima", "panapara"]
+        description: "Classificatory group"
+      - name: "trine_type"
+        type: "string"
+        values: ["dharma", "artha", "kama", "moksha"]
+        description: "Dharma/Artha/Kama/Moksha trine"
+      - name: "primary_themes"
+        type: "array"
+        description: "List of primary life areas represented - CHANGED from string to array per v1.3"
+      - name: "body_part"
+        type: "string"
+        description: "Associated body part"
+
+  - name: "Nakshatra"
+    label: "Nakshatra"
+    description: "The 27 (or 28) lunar mansions/nakshatras"
+    aliases: ["Lunar Mansion", "lunar mansion", "नक्षत्र", "Star", "star", "Constellation", "constellation"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic"]
+      - name: "number"
+        type: "integer"
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+        description: "Nakshatra number (1-27 or 1-28 with Abhijit)"
+      - name: "ruler"
+        type: "string"
+        description: "Ruling planet (extracted via RULES_NAKSHATRA relationship)"
+      - name: "deity"
+        type: "string"
+        description: "Presiding deity"
+      - name: "symbol"
+        type: "string"
+        description: "Traditional symbol"
+      - name: "gana"
+        type: "string"
+        values: ["deva", "manushya", "rakshasa"]
+        description: "Temperament group"
+      - name: "yoni"
+        type: "string"
+        description: "Animal nature/sexual compatibility"
+      - name: "tattva"
+        type: "string"
+        values: ["fire", "earth", "air", "water", "ether"]
+        description: "Elemental nature"
+      - name: "caste"
+        type: "string"
+        values: ["Brahmin", "Kshatriya", "Vaishya", "Shudra", "Mleccha"]
+        description: "Varna classification"
+      - name: "gender"
+        type: "string"
+        values: ["masculine", "feminine", "neutral"]
+        description: "Gender classification"
+
+  - name: "Yoga"
+    label: "Yoga"
+    description: "Planetary combinations and their effects"
+    aliases: ["Combination", "combination", "योग", "Planetary Yoga", "planetary yoga"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+      - name: "category"
+        type: "string"
+        values: ["raja", "dhana", "daridra", "arishta", "neecha", "vipareeta", "nabhasa", "chandra", "surya", "pancha_mahapurusha", "special"]
+        description: "Type of yoga"
+      - name: "benefic"
+        type: "boolean"
+        description: "Whether yoga is beneficial or malefic"
+      - name: "strength"
+        type: "string"
+        values: ["weak", "moderate", "strong", "very_strong"]
+        description: "Strength classification"
+      - name: "description"
+        type: "string"
+        description: "Brief description of formation conditions"
+
+  - name: "Dasha"
+    label: "Dasha"
+    description: "Planetary period systems"
+    aliases: ["Period", "period", "दशा", "Major Period", "major period", "Mahadasha", "mahadasha"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic"]
+      - name: "system"
+        type: "string"
+        values: ["vimshottari", "ashtottari", "yogini", "kalachakra", "narayana", "chara"]
+        description: "Dasha system name"
+      - name: "duration_years"
+        type: "integer"
+        description: "Duration in years"
+      - name: "level"
+        type: "string"
+        values: ["mahadasha", "antardasha", "pratyantardasha", "sookshma", "prana"]
+        description: "Dasha level/subdivision"
+      - name: "sequence_order"
+        type: "integer"
+        description: "Order in the dasha sequence"
+
+  - name: "Divisional_Chart"
+    label: "DivisionalChart"
+    description: "Varga charts/divisions (D-1 through D-60)"
+    aliases: ["Varga", "varga", "वर्ग", "Amsa", "amsa", "Division", "division"]
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic"]
+      - name: "division_number"
+        type: "integer"
+        description: "Division number (1, 2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60)"
+      - name: "significance"
+        type: "string"
+        description: "Area of life represented"
+      - name: "importance"
+        type: "string"
+        values: ["shadavarga", "saptavarga", "dasavarga", "shodasavarga"]
+        description: "Which varga group it belongs to"
+
+  - name: "AspectType"
+    label: "AspectType"
+    description: "Aspects used in Vedic and Western systems"
+    aliases: ["Drishti", "drishti", "दृष्टि", "Aspect", "aspect"]
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+      - name: "angle_degrees"
+        type: "integer"
+        values: [0, 30, 60, 90, 120, 150, 180, 240, 270]
+        description: "Aspect angle in degrees"
+      - name: "category"
+        type: "string"
+        values: ["major", "minor", "special", "full", "three_quarter", "half", "quarter"]
+        description: "Aspect classification"
+
+  - name: "Dignity"
+    label: "Dignity"
+    description: "Planetary dignity states (avastha)"
+    aliases: ["Avastha", "avastha", "अवस्था", "State", "state", "Condition", "condition"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "type"
+        type: "string"
+        values: ["exaltation", "debilitation", "own_sign", "moolatrikona", "friend", "neutral", "enemy", "combustion"]
+        description: "Type of dignity"
+      - name: "strength_modification"
+        type: "string"
+        values: ["maximum", "high", "medium", "low", "weakened"]
+        description: "Effect on planetary strength"
+
+  # --------------------------------------------------------------------------
+  # NEW: Interpretive & Meta Entities
+  # --------------------------------------------------------------------------
+  - name: "InterpretationRule"
+    label: "InterpretationRule"
+    description: |
+      Conditional interpretive rule extracted from text, connecting conditions to effects.
+      Example: "Saturn in 7th delays marriage" becomes:
+      - Rule node with polarity="malefic", context="placement"
+      - CONDITION edges to Saturn and House 7
+      - AFFECTS edge to LifeArea "Marriage & Spouse"
+    aliases: ["Rule", "rule", "Principle", "principle", "Interpretation", "interpretation"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+      - name: "context"
+        type: "string"
+        values: ["placement", "aspect", "yoga", "dasha", "transit", "general"]
+        description: "Type of astrological context"
+      - name: "polarity"
+        type: "string"
+        values: ["benefic", "malefic", "neutral", "mixed"]
+        description: "Overall effect polarity"
+      - name: "confidence"
+        type: "string"
+        values: ["definite", "likely", "possible", "conditional"]
+        description: "Confidence level of the interpretation"
+      - name: "source_text"
+        type: "string"
+        description: "Original text excerpt (for debugging/verification)"
+      - name: "notes"
+        type: "string"
+        description: "Additional context or conditions"
+
+  - name: "LifeArea"
+    label: "LifeArea"
+    description: |
+      Hierarchical list of detailed life areas impacted by astrological factors.
+      Provides standardized targets for effects instead of free-text.
+    aliases: ["Life Theme", "life theme", "Topic", "topic", "Domain", "domain"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "parent"
+        type: "string"
+        description: "Parent life area (for hierarchical structure)"
+      - name: "level"
+        type: "integer"
+        values: [1, 2]
+        description: "Hierarchy level (1=parent, 2=child)"
+
+  - name: "Effect"
+    label: "Effect"
+    description: |
+      Free-form astrological effects, results, and significations.
+
+      DISTINCTION FROM LifeArea (per ontology review):
+      - Effect = Free-text outcomes extracted from text (e.g., "delays marriage", "brings wealth", "causes health issues")
+      - LifeArea = Canonical categories for structured queries (e.g., "Marriage & Spouse", "Wealth & Finances")
+
+      Usage pattern:
+        Yoga --PRODUCES--> Effect --AFFECTS--> LifeArea
+        Example: "Kemadruma Yoga" --PRODUCES--> "delays marriage" --AFFECTS--> "Marriage & Spouse"
+
+      The 'category' field is OPTIONAL and for loose tagging only. For structured queries, use AFFECTS relationship to LifeArea.
+    aliases: ["Result", "result", "Signification", "signification", "फल", "Phala", "phala", "Indication", "indication"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "category"
+        type: "string"
+        values: ["career", "wealth", "marriage", "health", "spiritual", "education", "children", "longevity"]
+        description: "OPTIONAL loose tag for life area. For structured queries, use AFFECTS→LifeArea relationship instead."
+        deprecation_note: "Consider removing in v1.7 - use AFFECTS relationship for all life area mappings"
+      - name: "timing"
+        type: "string"
+        values: ["birth", "dasha", "transit", "general"]
+        description: "When effect manifests"
+      - name: "polarity"
+        type: "string"
+        values: ["benefic", "malefic", "neutral", "mixed"]
+        description: "Whether effect is positive, negative, or neutral"
+
+  - name: "Work"
+    label: "Work"
+    description: "Source text such as a book, article, or classical work"
+    aliases: ["Source", "source", "Text", "text", "Book", "book", "ग्रन्थ"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "title"
+        type: "string"
+        description: "Title of the work"
+      - name: "author"
+        type: "string"
+        description: "Author name"
+      - name: "year"
+        type: "integer"
+        description: "Year of publication/composition"
+      - name: "language"
+        type: "string"
+        values: ["English", "Sanskrit", "Hindi", "Tamil", "Telugu"]
+        description: "Original language"
+      - name: "tradition"
+        type: "string"
+        values: ["vedic", "western", "both"]
+
+
+  - name: "ConditionGroup"
+    label: "ConditionGroup"
+    description: |
+      Groups multiple conditions with logical operators for complex rules.
+      Used when simple AND/OR at InterpretationRule level is insufficient.
+      
+      Example: (Jupiter in Kendra AND Moon strong) OR (Venus in 7th AND no malefics)
+    aliases: ["condition group", "logical group"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "logical_operator"
+        type: "string"
+        values: ["AND", "OR", "NOT"]
+        description: "How to combine conditions in this group"
+      - name: "parent_group_id"
+        type: "string"
+        description: "ID of parent ConditionGroup for nesting (null for root)"
+
+  - name: "Ayanamsa"
+    label: "Ayanamsa"
+    description: "Precession correction systems"
+    aliases: ["Precession", "precession", "अयनांश"]
+    schema_version: "1.8_P"
+    properties:
+      - name: "reference_year"
+        type: "integer"
+        description: "Reference year for zero ayanamsa"
+
+# PROVENANCE SCHEMA (v1.5 Addition)
+# This section defines the provenance metadata structure for tracking content
+# origin, verification status, and quality assurance for yoga files and other
+# domain content that may be AI-generated or require expert validation.
+
+provenance_schema:
+  description: |
+    Provenance metadata tracks the origin, verification status, and quality
+    assurance of domain content files. This is especially important for
+    AI-generated content that requires validation against authoritative sources.
+
+  fields:
+    content_origin:
+      type: "string"
+      values: ["ai_generated", "human_authored", "classical_text", "mixed"]
+      description: "Origin of the content"
+      required: true
+
+    generation_tool:
+      type: "string"
+      description: "Tool/model used for AI generation (if applicable)"
+      examples: ["ChatGPT", "Claude", "Gemini"]
+      required_if: "content_origin == ai_generated"
+
+    generation_date:
+      type: "string"
+      format: "YYYY-MM-DD"
+      description: "Date content was generated"
+      required: true
+
+    auto_verification:
+      type: "object"
+      description: "Automated verification against online sources"
+      properties:
+        status:
+          type: "string"
+          values: ["unverified", "verified", "partially_verified", "failed"]
+          description: |
+            - unverified: Not yet checked against external sources
+            - verified: All verifiable fields confirmed accurate
+            - partially_verified: Some fields verified, others unverifiable
+            - failed: Verification found significant discrepancies
+          required: true
+
+        verified_date:
+          type: "string"
+          format: "YYYY-MM-DD"
+          description: "Date of verification"
+          required_if: "status != unverified"
+
+        verification_sources:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              url:
+                type: "string"
+                format: "uri"
+              title:
+                type: "string"
+              accessed_date:
+                type: "string"
+                format: "YYYY-MM-DD"
+          description: "Web sources used for verification"
+
+        verified_fields:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              field:
+                type: "string"
+                description: "Path to the field (e.g., 'conditions.core_conditions')"
+              status:
+                type: "string"
+                values: ["verified", "unverified", "partially_verified"]
+              notes:
+                type: "string"
+          description: "Individual field verification status"
+
+        discrepancies:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              field:
+                type: "string"
+              note:
+                type: "string"
+          description: "Noted differences from source material"
+
+    manual_verification:
+      type: "object"
+      description: "Expert human verification"
+      properties:
+        status:
+          type: "string"
+          values: ["pending", "verified", "rejected", "needs_review"]
+          description: |
+            - pending: Awaiting expert review
+            - verified: Expert confirmed accuracy
+            - rejected: Expert found significant errors
+            - needs_review: Requires additional expert attention
+          required: true
+
+        verified_by:
+          type: "string"
+          description: "Name/ID of verifying expert"
+          required_if: "status == verified"
+
+        verified_date:
+          type: "string"
+          format: "YYYY-MM-DD"
+          required_if: "status == verified"
+
+        notes:
+          type: "string"
+          description: "Expert notes or context"
+
+        corrections_made:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              field:
+                type: "string"
+              original_value:
+                type: "string"
+              corrected_value:
+                type: "string"
+              reason:
+                type: "string"
+          description: "Record of corrections made during verification"
+
+  versioning_rules:
+    description: |
+      File versioning based on provenance status:
+      - v1.0: Initial schema structure (no provenance)
+      - v1.1: Schema updated with enhanced structure
+      - v1.2: Provenance metadata added (auto_verification.status = unverified)
+      - v1.3: Auto-verification completed (auto_verification.status = verified/partially_verified)
+      - v1.4: Manual verification completed (manual_verification.status = verified)
+
+    version_meanings:
+      "1.0": "Original schema structure without provenance"
+      "1.1": "Enhanced schema structure without provenance"
+      "1.2": "Provenance added, awaiting verification"
+      "1.3": "Auto-verified against web sources"
+      "1.4": "Expert-verified content"
+
+  unverifiable_fields:
+    description: "Fields that cannot be auto-verified and require expert review"
+    fields:
+      - "sanskrit.verse"
+      - "transliteration"
+      - "classical_citations.chapter"
+      - "classical_citations.verse"
+    notes: |
+      Sanskrit verses and specific classical text references cannot be verified
+      through web sources alone. They require access to original texts and
+      Sanskrit scholarship for accurate validation.
+
+  change_history_schema:
+    description: |
+      Tracks content modifications made during verification or review processes.
+      Each entry records what was changed, by whom, when, and why.
+    structure:
+      - date:
+          type: "string"
+          format: "YYYY-MM-DD"
+          description: "Date the change was made"
+          required: true
+        changed_by:
+          type: "string"
+          description: "Person or tool that made the change"
+          required: true
+        original_line:
+          type: "string"
+          description: "The original content before modification (null if adding new content)"
+          required: true
+        updated_line:
+          type: "string"
+          description: "The new/modified content"
+          required: true
+        reason:
+          type: "string"
+          description: "Explanation of why the change was made"
+          required: true
+    example: |
+      change_history:
+        - date: "2025-01-15"
+          changed_by: "Claude (auto-verification)"
+          original_line: "Mercury combust (<2° from Sun)"
+          updated_line: "Mercury combust (<7-14° from Sun)"
+          reason: "Verified against multiple sources showing wider combustion range"
+    notes: |
+      - Empty array [] indicates no content changes made (only metadata additions)
+      - For provenance-only additions, use original_line: null
+      - Multiple changes on the same date should have separate entries
+
+# VALIDATION RULES (For KG Extraction Pipeline)
+# These rules are used by the EntityValidator and extraction pipeline to
+# filter noise, normalize entities, and ensure data quality during ingestion.
+
+validation_rules:
+
+  # --------------------------------------------------------------------------
+  # Entity Validation
+  # --------------------------------------------------------------------------
+  entity:
+    min_length: 3
+    max_length: 100
+
+    # Patterns to EXCLUDE (regex) - entities matching these are rejected
+    exclude_patterns:
+      - '^[a-h]\)\s*'              # List markers: a), b), c), etc.
+      - '^\d+$'                     # Pure numbers: 1, 2, 3
+      - '^[ivxlcdm]+$'              # Roman numerals only: i, ii, iii, iv, v
+      - '^(chapter|page|table|figure)\s*\d+'  # Document structure
+      - '^preface'                  # Front matter
+      - '^contents?$'               # Table of contents
+      - '^\(note:'                  # Parsing artifacts
+      - '\)\s*\('                   # Parsing artifacts with brackets
+      - '^(and|or|the|a|an|is|are|was|were|be|been|being)$'  # Stop words
+      - '^\d+\s*(am|pm)$'           # Time references
+      - '^(mr|mrs|ms|dr)\.'         # Titles
+      - '^\[.*\]$'                  # Bracketed references
+      - '^(ibid|op\.?\s*cit|loc\.?\s*cit)'  # Citation markers
+      - '^(and|or)\s+\w+,?\s*(are|is)_'  # "and Venus, are_malefics" patterns
+      - '^a\s+\w+\s+planet$'        # "A Sushka planet" - descriptions as entities
+      - '^the\s+\d+(st|nd|rd|th)\s+house\s+from'  # "The 4th house from Venus" - relationship expressions
+      - ',\s*(are|is)_\w+$'         # Trailing relationship fragments
+      - '^(edition|printing|reprint)'  # Publishing metadata
+      - '^(introduction|foreword|appendix)'  # Book structure
+      - '^\w+\s+to\s+(eleventh|first|second|third)'  # "Preface to Eleventh Edition"
+
+    # Entity name cleanup rules (applied in order)
+    cleanup_rules:
+      - pattern: '^(the|a|an)\s+'
+        replacement: ''
+        description: "Remove leading articles"
+      - pattern: '\s+(the|a|an)$'
+        replacement: ''
+        description: "Remove trailing articles"
+      - pattern: '\s{2,}'
+        replacement: ' '
+        description: "Normalize multiple spaces"
+      - pattern: '^\s+|\s+$'
+        replacement: ''
+        description: "Trim whitespace"
+
+    # Case normalization strategy (CRITICAL for consistency)
+    # Handles: sun, Sun, SUN → Sun | moon, Moon, MOON → Moon
+    case_normalization:
+      strategy: "canonical_case"
+      description: |
+        Use case-insensitive matching when looking up known_entities.
+        Return the canonical form from known_entities for output.
+        Examples:
+          - "sun" → "Sun" (matches canonical)
+          - "SUN" → "Sun" (matches canonical)
+          - "MOON" → "Moon" (matches canonical)
+          - "shani" → "Saturn" (matches alias, outputs canonical)
+          - "ARIES" → "Aries" (matches canonical)
+          - "mesha" → "Aries" (matches alias, outputs canonical)
+      implementation: |
+        # Python implementation example:
+        def normalize_entity(name: str, known_entities: dict) -> str:
+            name_lower = name.strip().lower()
+            for entity_type, entities in known_entities.items():
+                for entity in entities:
+                    if name_lower == entity['canonical'].lower():
+                        return entity['canonical']
+                    for alias in entity.get('aliases', []):
+                        if name_lower == alias.lower():
+                            return entity['canonical']
+            return name.strip().title()  # Default: title case
+
+  # --------------------------------------------------------------------------
+  # Relationship Validation
+  # --------------------------------------------------------------------------
+  relationship:
+    # Minimum confidence for LLM-extracted relationships
+    min_confidence: 0.7
+
+    # Case normalization for relationship types
+    # is_lord_of, Is_Lord_Of, IS_LORD_OF → IS_LORD_OF
+    case_normalization:
+      strategy: "uppercase_underscore"
+      description: |
+        Normalize all relationship types to UPPERCASE_WITH_UNDERSCORES.
+        Then match against relationship_normalization canonical forms.
+        Examples:
+          - "is_lord_of" → "IS_LORD_OF"
+          - "Is Lord Of" → "IS_LORD_OF"
+          - "isLordOf" → "IS_LORD_OF" (camelCase to underscore)
+      implementation: |
+        import re
+        def normalize_relationship(rel: str) -> str:
+            # Convert camelCase to underscore
+            rel = re.sub('([a-z])([A-Z])', r'\1_\2', rel)
+            # Replace spaces with underscores
+            rel = rel.replace(' ', '_')
+            # Convert to uppercase
+            return rel.upper().strip()
+
+    # Patterns to EXCLUDE from relationship types
+    exclude_patterns:
+      - '^(IS|ARE|WAS|WERE|BE|BEEN|BEING)$'  # Pure verbs without meaning
+      - '^\d+$'                               # Numbers
+      - '^(AND|OR|BUT|IF|THEN)$'              # Conjunctions
+      - '^_+$'                                # Only underscores
+      - '^\s*$'                               # Empty or whitespace
+
+  # --------------------------------------------------------------------------
+  # Quality Thresholds
+  # --------------------------------------------------------------------------
+  quality_thresholds:
+    # Fuzzy matching threshold for alias normalization (0.0 - 1.0)
+    fuzzy_match_threshold: 0.85
+
+    # Maximum percentage of "Entity" (generic) labels allowed
+    max_generic_entity_ratio: 0.50
+
+    # Minimum relationships per entity (orphans below this are flagged)
+    min_relationships_per_entity: 1
+
+    # Maximum orphan node rate (nodes without relationships)
+    max_orphan_rate: 0.05
+
+# RELATIONSHIP NORMALIZATION (For KG Extraction Pipeline)
+# Maps relationship type variations to canonical forms.
+# During extraction, any relationship matching a variation is normalized
+# to the canonical form (the key).
+
+relationship_normalization:
+
+  # --------------------------------------------------------------------------
+  # Lordship / Rulership
+  # --------------------------------------------------------------------------
+  IS_LORD_OF:
+    variations: ['LORD_OF', 'RULES', 'OWNS', 'GOVERNS', 'IS_RULER_OF', 'RULING']
+    description: "Planet rules/owns a sign or house"
+    example: "(Saturn, IS_LORD_OF, Capricorn)"
+    reverse: "IS_RULED_BY"
+
+  IS_RULED_BY:
+    variations: ['RULED_BY', 'OWNED_BY', 'GOVERNED_BY', 'HAS_LORD']
+    description: "Sign or house is ruled by a planet"
+    example: "(Capricorn, IS_RULED_BY, Saturn)"
+    reverse: "IS_LORD_OF"
+
+  # --------------------------------------------------------------------------
+  # Placement / Position
+  # --------------------------------------------------------------------------
+  OCCUPIES:
+    variations: ['IS_IN', 'ARE_IN', 'IS_PLACED_IN', 'PLACED_IN', 'POSITED_IN', 'IS_POSITED_IN',
+                 'RESIDES_IN', 'LOCATED_IN', 'SITS_IN', 'POSITIONED_IN', 'TENANTS']
+    description: "Entity is placed in a sign, house, or nakshatra"
+    example: "(Mars, OCCUPIES, 7th House)"
+    reverse: "CONTAINS"
+
+  CONTAINS:
+    variations: ['HAS', 'HOLDS', 'HOUSES']
+    description: "Sign, house, or nakshatra contains an entity"
+    example: "(7th House, CONTAINS, Mars)"
+    reverse: "OCCUPIES"
+
+  # --------------------------------------------------------------------------
+  # Aspects
+  # --------------------------------------------------------------------------
+  ASPECTS:
+    variations: ['IS_ASPECTING', 'CASTS_ASPECT_ON', 'DRISHTI_ON', 'SEES']
+    description: "Planet aspects another entity"
+    example: "(Saturn, ASPECTS, Moon)"
+    reverse: "IS_ASPECTED_BY"
+
+  IS_ASPECTED_BY:
+    variations: ['ASPECTED_BY', 'RECEIVES_ASPECT_FROM', 'RECEIVES_DRISHTI_FROM',
+                 'IS_SEEN_BY', 'HAS_ASPECT_OF']
+    description: "Entity receives aspect from a planet"
+    example: "(Moon, IS_ASPECTED_BY, Saturn)"
+    reverse: "ASPECTS"
+
+  # --------------------------------------------------------------------------
+  # Conjunction / Association
+  # --------------------------------------------------------------------------
+  CONJUNCT:
+    variations: ['IS_WITH', 'JOINS', 'CONJOINS', 'TOGETHER_WITH', 'COMBINED_WITH',
+                 'IN_CONJUNCTION_WITH', 'YUTI', 'ASSOCIATED_WITH', 'IS_ASSOCIATED_WITH',
+                 'CONJUNCTS', 'IS_CONJUNCT_WITH']
+    description: "Two planets are in the same sign/house"
+    example: "(Sun, CONJUNCT, Mercury)"
+    bidirectional: true
+
+  # --------------------------------------------------------------------------
+  # Exaltation / Debilitation / Dignity
+  # --------------------------------------------------------------------------
+  IS_EXALTED_IN:
+    variations: ['EXALTED_IN', 'UCCHA_IN', 'HAS_EXALTATION_IN']
+    description: "Planet is exalted in a sign"
+    example: "(Sun, IS_EXALTED_IN, Aries)"
+    reverse: "IS_EXALTATION_SIGN_OF"
+
+  IS_DEBILITATED_IN:
+    variations: ['DEBILITATED_IN', 'NEECHA_IN', 'HAS_DEBILITATION_IN', 'FALLEN_IN']
+    description: "Planet is debilitated in a sign"
+    example: "(Sun, IS_DEBILITATED_IN, Libra)"
+    reverse: "IS_DEBILITATION_SIGN_OF"
+
+  IS_MOOLATRIKONA_IN:
+    variations: ['MOOLATRIKONA_IN', 'MOOLTRIKONA_IN', 'HAS_MOOLATRIKONA_IN']
+    description: "Planet has moolatrikona position in a sign"
+    example: "(Sun, IS_MOOLATRIKONA_IN, Leo)"
+
+  IS_OWN_SIGN_IN:
+    variations: ['OWN_SIGN_IN', 'SWAKSHETRA_IN', 'IN_OWN_SIGN', 'IS_IN_OWN_SIGN']
+    description: "Planet is in its own sign"
+    example: "(Mars, IS_OWN_SIGN_IN, Aries)"
+
+  # --------------------------------------------------------------------------
+  # Planetary States (v1.6)
+  # --------------------------------------------------------------------------
+  IS_COMBUST:
+    variations: ['COMBUST', 'ASTA', 'BURNT', 'IN_COMBUSTION']
+    description: "Planet is combust due to proximity to Sun"
+    example: "(Mercury, IS_COMBUST, Sun)"
+
+  IS_RETROGRADE:
+    variations: ['RETROGRADE', 'VAKRI', 'IN_RETROGRESSION', 'MOVING_BACKWARD']
+    description: "Planet is in retrograde motion"
+    example: "(Mercury, IS_RETROGRADE, null)"
+
+  IS_HEMMED_BY:
+    variations: ['HEMMED_BY', 'PAPAKARTARI', 'SHUBHAKARTARI', 'SURROUNDED_BY']
+    description: "Entity is hemmed by malefics (papakartari) or benefics (shubhakartari)"
+    example: "(7th House, IS_HEMMED_BY, Saturn-Mars)"
+
+  IS_VARGOTTAMA:
+    variations: ['VARGOTTAMA', 'IN_VARGOTTAMA']
+    description: "Planet occupies same sign in rashi and navamsa"
+    example: "(Jupiter, IS_VARGOTTAMA, null)"
+
+  # --------------------------------------------------------------------------
+  # Classification / Type
+  # --------------------------------------------------------------------------
+  IS_TYPE_OF:
+    variations: ['IS_A', 'BELONGS_TO', 'IS_CATEGORY_OF', 'IS_KIND_OF', 'TYPE_OF',
+                 'CLASSIFIED_AS', 'FALLS_UNDER']
+    description: "Entity belongs to a category or type"
+    example: "(Gaja Kesari, IS_TYPE_OF, Raja Yoga)"
+
+  HAS_TYPE:
+    variations: ['HAS_CATEGORY', 'INCLUDES_TYPE']
+    description: "Category includes an entity type"
+    example: "(Raja Yoga, HAS_TYPE, Gaja Kesari)"
+    reverse: "IS_TYPE_OF"
+
+  # --------------------------------------------------------------------------
+  # Equivalence / Alias
+  # --------------------------------------------------------------------------
+  IS_EQUIVALENT_TO:
+    variations: ['SAME_AS', 'EQUALS', 'ALIAS_OF', 'ALSO_KNOWN_AS', 'IDENTICAL_TO',
+                 'IS_CALLED', 'SYNONYMOUS_WITH']
+    description: "Two entities are the same (aliases)"
+    example: "(Shani, IS_EQUIVALENT_TO, Saturn)"
+    bidirectional: true
+
+  # --------------------------------------------------------------------------
+  # Temporal / Dasha
+  # --------------------------------------------------------------------------
+  IS_DASHA_LORD_OF:
+    variations: ['DASHA_LORD_OF', 'RULES_DASHA', 'GOVERNS_PERIOD']
+    description: "Planet rules a dasha period"
+    example: "(Saturn, IS_DASHA_LORD_OF, Shani Mahadasha)"
+
+  ACTIVATES_DURING:
+    variations: ['ACTIVE_IN', 'OPERATES_DURING', 'MANIFESTS_IN']
+    description: "Yoga or effect activates during a period"
+    example: "(Gaja Kesari Yoga, ACTIVATES_DURING, Jupiter Dasha)"
+
+  # --------------------------------------------------------------------------
+  # Effects / Results
+  # --------------------------------------------------------------------------
+  PRODUCES:
+    variations: ['GIVES', 'CAUSES', 'RESULTS_IN', 'LEADS_TO', 'CREATES',
+                 'BRINGS', 'BESTOWS', 'GRANTS']
+    description: "Entity produces an effect or result"
+    example: "(Gaja Kesari Yoga, PRODUCES, Fame)"
+
+  IS_PRODUCED_BY:
+    variations: ['CAUSED_BY', 'RESULTS_FROM', 'GIVEN_BY', 'BESTOWED_BY']
+    description: "Effect is produced by an entity"
+    example: "(Fame, IS_PRODUCED_BY, Gaja Kesari Yoga)"
+    reverse: "PRODUCES"
+
+  SIGNIFIES:
+    variations: ['INDICATES', 'REPRESENTS', 'DENOTES', 'KARAKA_OF', 'SIGNIFICATOR_OF']
+    description: "Planet or house signifies a life area"
+    example: "(Jupiter, SIGNIFIES, Wisdom)"
+
+  # --------------------------------------------------------------------------
+  # Yoga Formation
+  # --------------------------------------------------------------------------
+  FORMS_YOGA:
+    variations: ['CREATES_YOGA', 'PRODUCES_YOGA', 'GIVES_YOGA']
+    description: "Planetary combination forms a yoga"
+    example: "(Jupiter in Kendra from Moon, FORMS_YOGA, Gaja Kesari)"
+
+  IS_FORMED_BY:
+    variations: ['FORMED_BY', 'CREATED_BY', 'REQUIRES']
+    description: "Yoga is formed by a condition"
+    example: "(Gaja Kesari, IS_FORMED_BY, Jupiter in Kendra from Moon)"
+    reverse: "FORMS_YOGA"
+
+  NEGATES:
+    variations: ['CANCELS', 'NULLIFIES', 'DESTROYS', 'BREAKS', 'WEAKENS']
+    description: "Condition negates or weakens a yoga"
+    example: "(Jupiter Debilitation, NEGATES, Gaja Kesari Yoga)"
+
+  IS_NEGATED_BY:
+    variations: ['CANCELLED_BY', 'NULLIFIED_BY', 'WEAKENED_BY', 'BROKEN_BY']
+    description: "Yoga is negated by a condition"
+    example: "(Gaja Kesari Yoga, IS_NEGATED_BY, Jupiter Debilitation)"
+    reverse: "NEGATES"
+
+  # --------------------------------------------------------------------------
+  # Nakshatra Relationships
+  # --------------------------------------------------------------------------
+  IS_NAKSHATRA_LORD_OF:
+    variations: ['NAKSHATRA_LORD_OF', 'RULES_NAKSHATRA']
+    description: "Planet rules a nakshatra"
+    example: "(Ketu, IS_NAKSHATRA_LORD_OF, Ashwini)"
+
+  BELONGS_TO_NAKSHATRA:
+    variations: ['IN_NAKSHATRA', 'NAKSHATRA_IS']
+    description: "Planet or point is in a nakshatra"
+    example: "(Moon, BELONGS_TO_NAKSHATRA, Rohini)"
+
+  # --------------------------------------------------------------------------
+  # House Relationships
+  # --------------------------------------------------------------------------
+  IS_NATURAL_SIGNIFICATOR_OF:
+    variations: ['NAISARGIKA_KARAKA_OF', 'NATURAL_KARAKA_OF']
+    description: "Planet is natural significator of a house"
+    example: "(Jupiter, IS_NATURAL_SIGNIFICATOR_OF, 5th House)"
+
+  IS_FUNCTIONAL_BENEFIC_FOR:
+    variations: ['BENEFIC_FOR', 'YOGAKARAKA_FOR', 'AUSPICIOUS_FOR']
+    description: "Planet is functionally benefic for an ascendant"
+    example: "(Saturn, IS_FUNCTIONAL_BENEFIC_FOR, Taurus Ascendant)"
+
+  IS_FUNCTIONAL_MALEFIC_FOR:
+    variations: ['MALEFIC_FOR', 'MARAKA_FOR', 'INAUSPICIOUS_FOR']
+    description: "Planet is functionally malefic for an ascendant"
+    example: "(Jupiter, IS_FUNCTIONAL_MALEFIC_FOR, Taurus Ascendant)"
+
+  # --------------------------------------------------------------------------
+  # Compatibility / Friendship
+  # --------------------------------------------------------------------------
+  IS_FRIEND_OF:
+    variations: ['FRIEND_OF', 'FRIENDLY_TO', 'MITRA_OF']
+    description: "Natural friendship between planets"
+    example: "(Sun, IS_FRIEND_OF, Moon)"
+    bidirectional: true
+
+  IS_ENEMY_OF:
+    variations: ['ENEMY_OF', 'HOSTILE_TO', 'SHATRU_OF']
+    description: "Natural enmity between planets"
+    example: "(Sun, IS_ENEMY_OF, Saturn)"
+    bidirectional: true
+
+  IS_NEUTRAL_TO:
+    variations: ['NEUTRAL_TO', 'SAMA_TO']
+    description: "Natural neutrality between planets"
+    example: "(Sun, IS_NEUTRAL_TO, Mercury)"
+    bidirectional: true
+
+  # --------------------------------------------------------------------------
+  # Additional Normalizations (v1.6 - Complete Coverage)
+  # --------------------------------------------------------------------------
+
+  # Sign/Nakshatra Rulership
+  RULES:
+    variations: ['RULES_SIGN', 'IS_RULER_OF_SIGN']
+    description: "Planet rules a sign (maps to IS_LORD_OF)"
+    canonical_redirect: "IS_LORD_OF"
+    example: "(Mars, RULES, Aries) → (Mars, IS_LORD_OF, Aries)"
+
+  RULES_NAKSHATRA:
+    variations: ['IS_NAKSHATRA_LORD_OF', 'NAKSHATRA_LORD_OF', 'IS_NAKSHATRA_RULER']
+    description: "Planet rules a nakshatra"
+    example: "(Ketu, RULES_NAKSHATRA, Ashwini)"
+
+  # Conjunction (standardize singular/plural)
+  CONJUNCTS:
+    variations: ['CONJUNCT', 'IS_CONJUNCT', 'IS_CONJUNCT_WITH', 'IN_CONJUNCTION']
+    description: "Planetary conjunction"
+    canonical_redirect: "CONJUNCT"
+    example: "(Sun, CONJUNCTS, Mercury) → (Sun, CONJUNCT, Mercury)"
+
+  # Placement
+  LOCATED_IN:
+    variations: ['IS_LOCATED_IN', 'SPANS', 'FALLS_IN']
+    description: "Nakshatra located in sign"
+    example: "(Ashwini, LOCATED_IN, Aries)"
+
+  # Effects and Production
+  PRODUCES_EFFECT:
+    variations: ['PRODUCES', 'GIVES_EFFECT', 'RESULTS_IN_EFFECT']
+    description: "Yoga/Planet produces effect"
+    canonical_redirect: "PRODUCES"
+    example: "(Gaja Kesari, PRODUCES_EFFECT, Fame) → (Gaja Kesari, PRODUCES, Fame)"
+
+  # Karaka relationships
+  KARAKA_FOR:
+    variations: ['IS_KARAKA_FOR', 'IS_SIGNIFICATOR_OF', 'SIGNIFIES_AS_KARAKA']
+    description: "Planet is natural significator (karaka)"
+    example: "(Jupiter, KARAKA_FOR, Children)"
+
+  # Dasha relationships
+  DASHA_SEQUENCE:
+    variations: ['FOLLOWS_IN_DASHA', 'COMES_AFTER_IN_DASHA', 'PRECEDES_IN_DASHA']
+    description: "Sequential order in dasha system"
+    example: "(Moon, DASHA_SEQUENCE, Mars)"
+
+  HAS_DASHA_DURATION:
+    variations: ['DASHA_DURATION', 'DASHA_PERIOD', 'MAHADASHA_YEARS']
+    description: "Planet's dasha duration"
+    example: "(Sun, HAS_DASHA_DURATION, 6 years)"
+
+  # Chart evaluation
+  EVALUATED_IN:
+    variations: ['EXAMINED_IN', 'ASSESSED_IN', 'STUDIED_IN']
+    description: "Entity evaluated in divisional chart"
+    example: "(Venus, EVALUATED_IN, D9)"
+
+  # Transit
+  TRANSITS:
+    variations: ['IS_TRANSITING', 'TRANSIT_IN', 'GOCHARA_IN']
+    description: "Current transit position"
+    example: "(Saturn, TRANSITS, Aquarius)"
+
+  # Strength modifiers
+  STRENGTHENS:
+    variations: ['ENHANCES', 'IMPROVES', 'BOOSTS', 'FORTIFIES']
+    description: "Entity strengthens another"
+    example: "(Jupiter, STRENGTHENS, Moon)"
+    reverse: "IS_STRENGTHENED_BY"
+
+  IS_STRENGTHENED_BY:
+    variations: ['ENHANCED_BY', 'SUPPORTED_BY', 'GAINS_STRENGTH_FROM']
+    description: "Entity is strengthened by another (inverse of STRENGTHENS)"
+    example: "(Moon, IS_STRENGTHENED_BY, Jupiter)"
+    reverse: "STRENGTHENS"
+
+  WEAKENS:
+    variations: ['AFFLICTS', 'DAMAGES', 'HARMS', 'DEBILITATES']
+    description: "Entity weakens another"
+    example: "(Saturn, WEAKENS, Moon)"
+    reverse: "IS_WEAKENED_BY"
+
+  IS_WEAKENED_BY:
+    variations: ['AFFLICTED_BY', 'HARMED_BY', 'DAMAGED_BY']
+    description: "Entity is weakened by another (inverse of WEAKENS)"
+    example: "(Moon, IS_WEAKENED_BY, Saturn)"
+    reverse: "WEAKENS"
+
+  # Chart context (v1.6 rev3)
+  OCCURS_IN:
+    variations: ['FORMS_IN', 'MANIFESTS_IN', 'PRESENT_IN']
+    description: "Yoga or rule occurs in specific chart"
+    example: "(Hamsa Yoga, OCCURS_IN, D1)"
+    reverse: "HAS_OCCURRENCE"
+
+  HAS_OCCURRENCE:
+    variations: ['CONTAINS_YOGA', 'SHOWS_YOGA']
+    description: "Chart contains yoga or rule (inverse of OCCURS_IN)"
+    example: "(D1, HAS_OCCURRENCE, Hamsa Yoga)"
+    reverse: "OCCURS_IN"
+
+  # Interpretation rules
+  CONDITION:
+    variations: ['HAS_CONDITION', 'REQUIRES_CONDITION', 'WHEN_CONDITION']
+    description: "Interpretation rule condition"
+    example: "(Rule1, CONDITION, Saturn in 7th)"
+
+  AFFECTS:
+    variations: ['IMPACTS', 'INFLUENCES_AREA', 'RELATES_TO_AREA']
+    description: "Rule affects life area"
+    example: "(Rule1, AFFECTS, Marriage)"
+
+  DEFINED_IN:
+    variations: ['CITED_IN', 'MENTIONED_IN', 'DESCRIBED_IN', 'FROM_TEXT']
+    description: "Entity defined in classical text"
+    example: "(Gaja Kesari, DEFINED_IN, BPHS)"
+
+  # Own sign (standardize naming)
+  IS_IN_OWN_SIGN:
+    variations: ['IS_OWN_SIGN_IN', 'OWN_SIGN_IN', 'SVAKSHETRA', 'IN_SVAKSHETRA']
+    description: "Planet in own sign"
+    canonical_redirect: "IS_OWN_SIGN_IN"
+    example: "(Mars, IS_IN_OWN_SIGN, Aries) → (Mars, IS_OWN_SIGN_IN, Aries)"
+
+  # Requirements
+  REQUIRES_PLACEMENT:
+    variations: ['NEEDS_PLACEMENT', 'REQUIRES_POSITION', 'FORMATION_NEEDS']
+    description: "Yoga requires specific placement"
+    example: "(Gaja Kesari, REQUIRES_PLACEMENT, Jupiter in Kendra)"
+
+# ENTITY TYPE DETECTION PATTERNS (For KG Extraction Pipeline)
+# Regex patterns and rules for detecting entity types from extracted names.
+# Used by EntityTypeDetector to assign proper labels instead of generic "Entity".
+
+entity_type_detection:
+
+  Planet:
+    # Use known_entities.Planet for exact matches
+    use_known_entities: true
+    # Additional patterns for variations
+    patterns:
+      - '\b(planet|graha)\b'
+    # Words that when combined with planet name indicate it's a planet
+    context_hints:
+      - 'dasha'
+      - 'mahadasha'
+      - 'antardasha'
+      - 'transit'
+
+  Sign:
+    use_known_entities: true
+    patterns:
+      - '\b(rashi|rasi|sign)\b'
+    # House numbers followed by sign indicate sign context
+    context_hints:
+      - 'ascendant'
+      - 'rising'
+      - 'lagna'
+
+  House:
+    use_known_entities: true
+    patterns:
+      - '^\d+(?:st|nd|rd|th)\s*(?:house|bhava)$'
+      - '^(?:house|bhava)\s*\d+$'
+      - '^(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s*house$'
+      - '\b(?:lagna|ascendant|tanu|dhana|sahaja|sukha|putra|ari|kalatra|randhra|dharma|karma|labha|vyaya)\s*bhava\b'
+    # Patterns that identify house references
+    context_hints:
+      - 'lord'
+      - 'bhava'
+      - 'cusp'
+
+  Nakshatra:
+    use_known_entities: true
+    patterns:
+      - '\b(nakshatra|asterism|lunar mansion)\b'
+    context_hints:
+      - 'pada'
+      - 'lord'
+      - 'deity'
+
+  Yoga:
+    use_known_entities: true
+    patterns:
+      - '\byoga\b'
+      - '\b(raja|dhana|arishta|mahapurusha|nabhasa|pancha)\s+yoga\b'
+    context_hints:
+      - 'formed'
+      - 'present'
+      - 'activated'
+
+  Divisional_Chart:
+    use_known_entities: true
+    patterns:
+      - '^D\d+$'
+      - '\b(varga|amsa|chart)\b'
+      - '\b(navamsa|dasamsa|hora|drekkana)\b'
+    context_hints:
+      - 'division'
+      - 'chart'
+
+  Dasha:
+    use_known_entities: true
+    patterns:
+      - '\b(dasha|dasa|bhukti|antardasha|mahadasha)\b'
+      - '\b(vimshottari|ashtottari|yogini)\b'
+    context_hints:
+      - 'period'
+      - 'running'
+      - 'current'
+
+  LifeArea:
+    use_known_entities: true
+    patterns:
+      # Level 1 parent areas
+      - '\b(career|wealth|marriage|health|education|children|property|spirituality|travel|family)\b'
+      - '\b(mental health|emotional health|finances|relationships|transformation)\b'
+      # Level 2 child areas - common terms
+      - '\b(income|savings|investments|debts|expenses|inheritance)\b'
+      - '\b(job|profession|business|employment|authority|reputation)\b'
+      - '\b(spouse|marriage|partnerships|romance|love|marital)\b'
+      - '\b(siblings|parents|mother|father|children|offspring)\b'
+      - '\b(longevity|vitality|illness|disease|accidents|injuries)\b'
+      - '\b(anxiety|depression|confidence|memory|concentration)\b'
+      - '\b(foreign travel|short journeys|pilgrimage|relocation)\b'
+      - '\b(real estate|vehicles|land|property|assets)\b'
+      - '\b(meditation|moksha|spirituality|liberation|occult|mysticism)\b'
+    context_hints:
+      - 'signifies'
+      - 'affects'
+      - 'impacts'
+      - 'relates to'
+      - 'governs'
+      - 'indicates'
+
+  Aspect:
+    patterns:
+      - '\b(aspect|drishti)\b'
+      - '\b(trine|square|opposition|conjunction|sextile)\b'
+    context_hints:
+      - 'receives'
+      - 'casts'
+      - 'aspects'
+
+# KNOWN ENTITIES
+
+known_entities:
+  
+  # --------------------------------------------------------------------------
+  # PLANETS (9 Vedic + 4 Western)
+  # --------------------------------------------------------------------------
+  Planet:
+    # Vedic Planets
+    - canonical: "Sun"
+      traditions: ["vedic", "western"]
+      aliases: ["Surya", "surya", "Sūrya", "sūrya", "Ravi", "ravi", "Aditya", "aditya", "Āditya", "āditya", "Bhanu", "bhanu", "Bhānu", "bhānu", "Arka", "arka", "Dinakara", "dinakara", "Divakara", "divakara", "सूर्य", "रवि", "आदित्य", "भानु"]
+      properties:
+        tradition: "both"
+        nature: "malefic"
+        gender: "masculine"
+        element: "fire"
+        caste: "Kshatriya"
+        guna: "sattvic"
+        deity: "Agni"
+        day_of_week: "Sunday"
+        is_node: false
+        is_outer: false
+        psychological_role: "ego, self-expression, vitality, father archetype"
+
+    - canonical: "Moon"
+      traditions: ["vedic", "western"]
+      aliases: ["Chandra", "chandra", "Candra", "candra", "Soma", "soma", "Indu", "indu", "Nisha-kara", "nisha-kara", "Niśākara", "niśākara", "Nisakara", "nisakara", "चन्द्र", "चंद्र", "सोम", "इन्दु"]
+      properties:
+        tradition: "both"
+        nature: "benefic"
+        gender: "feminine"
+        element: "water"
+        caste: "Vaishya"
+        guna: "sattvic"
+        deity: "Varuna"
+        day_of_week: "Monday"
+        is_node: false
+        is_outer: false
+        psychological_role: "emotions, subconscious, nurturing, mother archetype"
+
+    - canonical: "Mars"
+      traditions: ["vedic", "western"]
+      aliases: ["Mangal", "mangal", "Maṅgala", "maṅgala", "Mangala", "mangala", "Kuja", "kuja", "Angaraka", "angaraka", "Aṅgāraka", "aṅgāraka", "Bhauma", "bhauma", "Bhūma", "bhūma", "Bhuma", "bhuma", "मंगल", "मङ्गल", "कुज", "अङ्गारक", "भौम"]
+      properties:
+        tradition: "both"
+        nature: "malefic"
+        gender: "masculine"
+        element: "fire"
+        caste: "Kshatriya"
+        guna: "tamasic"
+        deity: "Kartikeya"
+        day_of_week: "Tuesday"
+        is_node: false
+        is_outer: false
+        psychological_role: "action, aggression, desire, warrior energy"
+
+    - canonical: "Mercury"
+      traditions: ["vedic", "western"]
+      aliases: ["Budha", "budha", "Budh", "budh", "Soumya", "soumya", "Saumya", "saumya", "बुध", "सौम्य"]
+      properties:
+        tradition: "both"
+        nature: "neutral"
+        gender: "eunuch"
+        element: "earth"
+        caste: "Vaishya"
+        guna: "rajasic"
+        deity: "Vishnu"
+        day_of_week: "Wednesday"
+        is_node: false
+        is_outer: false
+        psychological_role: "communication, intellect, adaptability, merchant"
+
+    - canonical: "Jupiter"
+      traditions: ["vedic", "western"]
+      aliases: ["Guru", "guru", "Brihaspati", "brihaspati", "Bṛhaspati", "bṛhaspati", "Brhaspati", "brhaspati", "Devaguru", "devaguru", "Jiva", "jiva", "Jīva", "jīva", "गुरु", "बृहस्पति", "देवगुरु", "जीव"]
+      properties:
+        tradition: "both"
+        nature: "benefic"
+        gender: "masculine"
+        element: "ether"
+        caste: "Brahmin"
+        guna: "sattvic"
+        deity: "Indra"
+        day_of_week: "Thursday"
+        is_node: false
+        is_outer: false
+        psychological_role: "wisdom, expansion, philosophy, teacher archetype"
+
+    - canonical: "Venus"
+      traditions: ["vedic", "western"]
+      aliases: ["Shukra", "shukra", "Śukra", "śukra", "Sukra", "sukra", "Shukracharya", "shukracharya", "Śukrācārya", "śukrācārya", "Sukracarya", "sukracarya", "Bhargava", "bhargava", "Bhārgava", "bhārgava", "Kavya", "kavya", "Kāvya", "kāvya", "शुक्र", "शुक्राचार्य", "भार्गव", "काव्य"]
+      properties:
+        tradition: "both"
+        nature: "benefic"
+        gender: "feminine"
+        element: "water"
+        caste: "Brahmin"
+        guna: "rajasic"
+        deity: "Lakshmi"
+        day_of_week: "Friday"
+        is_node: false
+        is_outer: false
+        psychological_role: "love, beauty, harmony, pleasure, relationships"
+
+    - canonical: "Saturn"
+      traditions: ["vedic", "western"]
+      aliases: ["Shani", "shani", "Śani", "śani", "Sani", "sani", "Shanaischarya", "shanaischarya", "Śanaiścara", "śanaiścara", "Sanaiscara", "sanaiscara", "Manda", "manda", "Krura", "krura", "Krūra", "krūra", "शनि", "शनैश्चर", "मन्द", "क्रूर"]
+      properties:
+        tradition: "both"
+        nature: "malefic"
+        gender: "neutral"
+        element: "air"
+        caste: "Shudra"
+        guna: "tamasic"
+        deity: "Yama"
+        day_of_week: "Saturday"
+        is_node: false
+        is_outer: false
+        psychological_role: "discipline, restriction, karma, time, limitations"
+
+    - canonical: "Rahu"
+      traditions: ["vedic"]
+      aliases: ["Rāhu", "rāhu", "Rahu", "rahu", "North Node", "north node", "Dragon's Head", "dragon's head", "राहु", "Ascending Node", "ascending node"]
+      properties:
+        tradition: "vedic"
+        nature: "malefic"
+        gender: "feminine"
+        element: "air"
+        caste: "Mleccha"
+        guna: "tamasic"
+        deity: "Durga"
+        is_node: true
+        is_outer: false
+        psychological_role: "obsession, desire, material hunger, worldly ambition"
+
+    - canonical: "Ketu"
+      traditions: ["vedic"]
+      aliases: ["South Node", "south node", "Dragon's Tail", "dragon's tail", "केतु", "Descending Node", "descending node", "Sikhi", "sikhi", "Śikhi", "śikhi"]
+      properties:
+        tradition: "vedic"
+        nature: "malefic"
+        gender: "neutral"
+        element: "fire"
+        caste: "Mleccha"
+        guna: "tamasic"
+        deity: "Ganesha"
+        is_node: true
+        is_outer: false
+        psychological_role: "detachment, liberation, spirituality, past-life karma, moksha"
+
+    # Western Outer Planets (Optional - for mixed libraries)
+    - canonical: "Uranus"
+      traditions: ["western"]
+      aliases: ["The Awakener", "the awakener", "Sky God", "sky god", "Ouranos", "ouranos", "Herschel", "herschel"]
+      properties:
+        tradition: "western"
+        nature: "neutral"
+        gender: "neutral"
+        element: "air"
+        is_node: false
+        is_outer: true
+        psychological_role: "sudden change, rebellion, innovation, individuation"
+
+    - canonical: "Neptune"
+      traditions: ["western"]
+      aliases: ["The Mystic", "the mystic", "Poseidon", "poseidon", "Sea God", "sea god", "The Dissolver", "the dissolver"]
+      properties:
+        tradition: "western"
+        nature: "neutral"
+        gender: "neutral"
+        element: "water"
+        is_node: false
+        is_outer: true
+        psychological_role: "dreams, illusions, spirituality, escapism, dissolution"
+
+    - canonical: "Pluto"
+      traditions: ["western"]
+      aliases: ["The Transformer", "the transformer", "Hades", "hades", "Lord of the Underworld", "lord of the underworld", "The Regenerator", "the regenerator"]
+      properties:
+        tradition: "western"
+        nature: "neutral"
+        gender: "neutral"
+        element: "fire"
+        is_node: false
+        is_outer: true
+        psychological_role: "deep transformation, power, death-rebirth, shadow"
+
+    - canonical: "Chiron"
+      traditions: ["western"]
+      aliases: ["The Wounded Healer", "the wounded healer", "Centaur", "centaur", "The Bridge", "the bridge"]
+      properties:
+        tradition: "western"
+        nature: "neutral"
+        gender: "neutral"
+        element: null
+        is_node: false
+        is_outer: true
+        psychological_role: "wounds, healing, mentorship, bridging old and new"
+
+  # Signs (keeping same as v1.0)
+  Sign:
+    - canonical: "Aries"
+      traditions: ["vedic", "western"]
+      aliases: ["Mesha", "mesha", "Mesh", "mesh", "मेष", "Ram", "ram"]
+      properties:
+        tradition: "both"
+        element: "fire"
+        modality: "cardinal"
+        gender: "masculine"
+        body_part: "head"
+        direction: "east"
+        guna: "rajasic"
+
+    - canonical: "Taurus"
+      traditions: ["vedic", "western"]
+      aliases: ["Vrishabha", "vrishabha", "Vrishaba", "vrishaba", "Vrisha", "vrisha", "वृषभ", "Bull", "bull"]
+      properties:
+        tradition: "both"
+        element: "earth"
+        modality: "fixed"
+        gender: "feminine"
+        body_part: "face, neck"
+        direction: "south"
+        guna: "rajasic"
+
+    - canonical: "Gemini"
+      traditions: ["vedic", "western"]
+      aliases: ["Mithuna", "mithuna", "Mithun", "mithun", "मिथुन", "Twins", "twins"]
+      properties:
+        tradition: "both"
+        element: "air"
+        modality: "mutable"
+        gender: "masculine"
+        body_part: "shoulders, arms"
+        direction: "west"
+        guna: "sattvic"
+
+    - canonical: "Cancer"
+      traditions: ["vedic", "western"]
+      aliases: ["Karka", "karka", "Karkata", "karkata", "कर्क", "Crab", "crab"]
+      properties:
+        tradition: "both"
+        element: "water"
+        modality: "cardinal"
+        gender: "feminine"
+        body_part: "chest, heart"
+        direction: "north"
+        guna: "sattvic"
+
+    - canonical: "Leo"
+      traditions: ["vedic", "western"]
+      aliases: ["Simha", "simha", "Sinh", "sinh", "सिंह", "सिम्ह", "Lion", "lion"]
+      properties:
+        tradition: "both"
+        element: "fire"
+        modality: "fixed"
+        gender: "masculine"
+        body_part: "stomach, upper back"
+        direction: "east"
+        guna: "sattvic"
+
+    - canonical: "Virgo"
+      traditions: ["vedic", "western"]
+      aliases: ["Kanya", "kanya", "कन्या", "Virgin", "virgin", "Maiden", "maiden"]
+      properties:
+        tradition: "both"
+        element: "earth"
+        modality: "mutable"
+        gender: "feminine"
+        body_part: "intestines, navel"
+        direction: "south"
+        guna: "rajasic"
+
+    - canonical: "Libra"
+      traditions: ["vedic", "western"]
+      aliases: ["Tula", "tula", "Thula", "thula", "तुला", "Balance", "balance", "Scales", "scales"]
+      properties:
+        tradition: "both"
+        element: "air"
+        modality: "cardinal"
+        gender: "masculine"
+        body_part: "kidneys, lower back"
+        direction: "west"
+        guna: "rajasic"
+
+    - canonical: "Scorpio"
+      traditions: ["vedic", "western"]
+      aliases: ["Vrishchika", "vrishchika", "Vrischik", "vrischik", "वृश्चिक", "Scorpion", "scorpion"]
+      properties:
+        tradition: "both"
+        element: "water"
+        modality: "fixed"
+        gender: "feminine"
+        body_part: "genitals"
+        direction: "north"
+        guna: "tamasic"
+
+    - canonical: "Sagittarius"
+      traditions: ["vedic", "western"]
+      aliases: ["Dhanu", "dhanu", "Dhanur", "dhanur", "Dhanus", "dhanus", "धनु", "धनुष", "Archer", "archer", "Bow", "bow"]
+      properties:
+        tradition: "both"
+        element: "fire"
+        modality: "mutable"
+        gender: "masculine"
+        body_part: "thighs, hips"
+        direction: "east"
+        guna: "sattvic"
+
+    - canonical: "Capricorn"
+      traditions: ["vedic", "western"]
+      aliases: ["Makara", "makara", "Makar", "makar", "मकर", "Crocodile", "crocodile", "Sea-Goat", "sea-goat"]
+      properties:
+        tradition: "both"
+        element: "earth"
+        modality: "cardinal"
+        gender: "feminine"
+        body_part: "knees"
+        direction: "south"
+        guna: "tamasic"
+
+    - canonical: "Aquarius"
+      traditions: ["vedic", "western"]
+      aliases: ["Kumbha", "kumbha", "Kumbh", "kumbh", "कुम्भ", "Water Bearer", "water bearer", "Pitcher", "pitcher"]
+      properties:
+        tradition: "both"
+        element: "air"
+        modality: "fixed"
+        gender: "masculine"
+        body_part: "calves, ankles"
+        direction: "west"
+        guna: "tamasic"
+
+    - canonical: "Pisces"
+      traditions: ["vedic", "western"]
+      aliases: ["Meena", "meena", "Meen", "meen", "मीन", "Fish", "fish"]
+      properties:
+        tradition: "both"
+        element: "water"
+        modality: "mutable"
+        gender: "feminine"
+        body_part: "feet"
+        direction: "north"
+        guna: "sattvic"
+
+  # Houses (keeping same structure from v1.0, just showing first 3 for brevity)
+  House:
+    - canonical: "1st House"
+      aliases: ["Lagna", "lagna", "Ascendant", "ascendant", "Tanu Bhava", "tanu bhava", "लग्न", "तनु भाव", "First House", "first house", "1st Bhava", "1st bhava"]
+      properties:
+        tradition: "both"
+        number: 1
+        category: "kendra"
+        trine_type: "dharma"
+        primary_themes: "self, body, personality, appearance"
+        body_part: "head"
+
+    - canonical: "2nd House"
+      aliases: ["Dhana Bhava", "dhana bhava", "धन भाव", "Second House", "second house", "2nd Bhava", "2nd bhava", "Kutumba Bhava", "kutumba bhava"]
+      properties:
+        tradition: "both"
+        number: 2
+        category: "panapara"
+        trine_type: "artha"
+        primary_themes: "wealth, family, speech, food"
+        body_part: "face, right eye"
+
+    - canonical: "3rd House"
+      aliases: ["Sahaja Bhava", "sahaja bhava", "सहज भाव", "Third House", "third house", "3rd Bhava", "3rd bhava", "Bhratra Bhava", "bhratra bhava", "Parakrama Bhava", "parakrama bhava"]
+      properties:
+        tradition: "both"
+        number: 3
+        category: "upachaya"
+        trine_type: "kama"
+        primary_themes: "siblings, courage, communication, short travels"
+        body_part: "shoulders, arms, right ear"
+
+    - canonical: "4th House"
+      aliases: ["Sukha Bhava", "sukha bhava", "सुख भाव", "Fourth House", "fourth house", "4th Bhava", "4th bhava", "Matru Bhava", "matru bhava", "Bandhu Bhava", "bandhu bhava"]
+      properties:
+        tradition: "both"
+        number: 4
+        category: "kendra"
+        trine_type: "moksha"
+        primary_themes: "mother, happiness, property, education, vehicles"
+        body_part: "chest, heart, lungs"
+
+    - canonical: "5th House"
+      aliases: ["Putra Bhava", "putra bhava", "पुत्र भाव", "Fifth House", "fifth house", "5th Bhava", "5th bhava", "Mantra Bhava", "mantra bhava"]
+      properties:
+        tradition: "both"
+        number: 5
+        category: "trikona"
+        trine_type: "dharma"
+        primary_themes: "children, intelligence, creativity, speculation"
+        body_part: "stomach, upper abdomen"
+
+    - canonical: "6th House"
+      aliases: ["Ari Bhava", "ari bhava", "Ripu Bhava", "ripu bhava", "शत्रु भाव", "Sixth House", "sixth house", "6th Bhava", "6th bhava", "Shatru Bhava", "shatru bhava", "Roga Bhava", "roga bhava"]
+      properties:
+        tradition: "both"
+        number: 6
+        category: "dusthana"
+        trine_type: "artha"
+        primary_themes: "enemies, diseases, debts, service, daily work"
+        body_part: "intestines, digestive system"
+
+    - canonical: "7th House"
+      aliases: ["Kalatra Bhava", "kalatra bhava", "कलत्र भाव", "Seventh House", "seventh house", "7th Bhava", "7th bhava", "Yuvati Bhava", "yuvati bhava", "Jaya Bhava", "jaya bhava"]
+      properties:
+        tradition: "both"
+        number: 7
+        category: "kendra"
+        trine_type: "kama"
+        primary_themes: "spouse, partnerships, marriage, business"
+        body_part: "reproductive organs, lower abdomen"
+
+    - canonical: "8th House"
+      aliases: ["Randhra Bhava", "randhra bhava", "रन्ध्र भाव", "Eighth House", "eighth house", "8th Bhava", "8th bhava", "Ayur Bhava", "ayur bhava", "Mrityu Bhava", "mrityu bhava"]
+      properties:
+        tradition: "both"
+        number: 8
+        category: "dusthana"
+        trine_type: "moksha"
+        primary_themes: "longevity, transformation, occult, inheritance, death"
+        body_part: "genitals"
+
+    - canonical: "9th House"
+      aliases: ["Dharma Bhava", "dharma bhava", "धर्म भाव", "Ninth House", "ninth house", "9th Bhava", "9th bhava", "Bhagya Bhava", "bhagya bhava", "Pitru Bhava", "pitru bhava"]
+      properties:
+        tradition: "both"
+        number: 9
+        category: "trikona"
+        trine_type: "dharma"
+        primary_themes: "fortune, religion, father, long travels, higher learning"
+        body_part: "thighs, hips"
+
+    - canonical: "10th House"
+      aliases: ["Karma Bhava", "karma bhava", "कर्म भाव", "Tenth House", "tenth house", "10th Bhava", "10th bhava", "Rajya Bhava", "rajya bhava", "Madhya", "madhya"]
+      properties:
+        tradition: "both"
+        number: 10
+        category: "kendra"
+        trine_type: "artha"
+        primary_themes: "career, profession, status, reputation, authority"
+        body_part: "knees"
+
+    - canonical: "11th House"
+      aliases: ["Labha Bhava", "labha bhava", "लाभ भाव", "Eleventh House", "eleventh house", "11th Bhava", "11th bhava", "Aya Bhava", "aya bhava"]
+      properties:
+        tradition: "both"
+        number: 11
+        category: "upachaya"
+        trine_type: "kama"
+        primary_themes: "gains, income, friends, elder siblings, aspirations"
+        body_part: "calves, left ear"
+
+    - canonical: "12th House"
+      aliases: ["Vyaya Bhava", "vyaya bhava", "व्यय भाव", "Twelfth House", "twelfth house", "12th Bhava", "12th bhava", "Moksha Bhava", "moksha bhava", "Antya Bhava", "antya bhava"]
+      properties:
+        tradition: "both"
+        number: 12
+        category: "dusthana"
+        trine_type: "moksha"
+        primary_themes: "loss, expenses, spirituality, foreign lands, isolation"
+        body_part: "feet, left eye"
+
+  # Nakshatras (keeping same as v1.0, showing just first 3)
+  Nakshatra:
+    - canonical: "Ashwini"
+      aliases: ["Ashvini", "ashvini", "Aswini", "aswini", "अश्विनी", "Ashvinī", "ashvinī"]
+      properties:
+        tradition: "vedic"
+        number: 1
+        ruler: "Ketu"
+        deity: "Ashwini Kumaras"
+        symbol: "Horse's head"
+        gana: "deva"
+        yoni: "Horse"
+        tattva: "earth"
+        caste: "Vaishya"
+        gender: "masculine"
+
+    - canonical: "Bharani"
+      aliases: ["Bharaṇī", "bharaṇī", "Bharani", "bharani", "भरणी"]
+      properties:
+        tradition: "vedic"
+        number: 2
+        ruler: "Venus"
+        deity: "Yama"
+        symbol: "Yoni (vulva)"
+        gana: "manushya"
+        yoni: "Elephant"
+        tattva: "earth"
+        caste: "Mleccha"
+        gender: "feminine"
+
+    - canonical: "Krittika"
+      aliases: ["Kṛttikā", "kṛttikā", "Krttika", "krttika", "कृत्तिका"]
+      properties:
+        tradition: "vedic"
+        number: 3
+        ruler: "Sun"
+        deity: "Agni"
+        symbol: "Razor/knife"
+        gana: "rakshasa"
+        yoni: "Sheep"
+        tattva: "fire"
+        caste: "Brahmin"
+        gender: "feminine"
+
+    - canonical: "Rohini"
+      aliases: ["Rohiṇī", "rohiṇī", "Rohini", "rohini", "रोहिणी"]
+      properties:
+        tradition: "vedic"
+        number: 4
+        ruler: "Moon"
+        deity: "Brahma"
+        symbol: "Cart/chariot"
+        gana: "manushya"
+        yoni: "Serpent"
+        tattva: "earth"
+        caste: "Shudra"
+        gender: "feminine"
+
+    - canonical: "Mrigashira"
+      aliases: ["Mṛgaśīrṣa", "mṛgaśīrṣa", "Mrgasirsa", "mrgasirsa", "Mrigasira", "mrigasira", "मृगशीर्ष", "मृगशिरा"]
+      properties:
+        tradition: "vedic"
+        number: 5
+        ruler: "Mars"
+        deity: "Soma"
+        symbol: "Deer's head"
+        gana: "deva"
+        yoni: "Serpent"
+        tattva: "earth"
+        caste: "Vaishya"
+        gender: "neutral"
+
+    - canonical: "Ardra"
+      aliases: ["Ārdrā", "ārdrā", "Ardra", "ardra", "आर्द्रा"]
+      properties:
+        tradition: "vedic"
+        number: 6
+        ruler: "Rahu"
+        deity: "Rudra"
+        symbol: "Teardrop"
+        gana: "manushya"
+        yoni: "Dog"
+        tattva: "water"
+        caste: "Mleccha"
+        gender: "feminine"
+
+    - canonical: "Punarvasu"
+      aliases: ["Punarvasū", "punarvasū", "Punarvasu", "punarvasu", "पुनर्वसु"]
+      properties:
+        tradition: "vedic"
+        number: 7
+        ruler: "Jupiter"
+        deity: "Aditi"
+        symbol: "Bow and quiver"
+        gana: "deva"
+        yoni: "Cat"
+        tattva: "water"
+        caste: "Vaishya"
+        gender: "masculine"
+
+    - canonical: "Pushya"
+      aliases: ["Puṣya", "puṣya", "Pusya", "pusya", "पुष्य"]
+      properties:
+        tradition: "vedic"
+        number: 8
+        ruler: "Saturn"
+        deity: "Brihaspati"
+        symbol: "Cow's udder"
+        gana: "deva"
+        yoni: "Goat"
+        tattva: "water"
+        caste: "Brahmin"
+        gender: "masculine"
+
+    - canonical: "Ashlesha"
+      aliases: ["Āśleṣā", "āśleṣā", "Aslesa", "aslesa", "आश्लेषा"]
+      properties:
+        tradition: "vedic"
+        number: 9
+        ruler: "Mercury"
+        deity: "Nagas (Serpents)"
+        symbol: "Coiled serpent"
+        gana: "rakshasa"
+        yoni: "Cat"
+        tattva: "water"
+        caste: "Mleccha"
+        gender: "feminine"
+
+    - canonical: "Magha"
+      aliases: ["Maghā", "maghā", "Magha", "magha", "मघा"]
+      properties:
+        tradition: "vedic"
+        number: 10
+        ruler: "Ketu"
+        deity: "Pitris (Ancestors)"
+        symbol: "Throne"
+        gana: "rakshasa"
+        yoni: "Rat"
+        tattva: "water"
+        caste: "Shudra"
+        gender: "feminine"
+
+    - canonical: "Purva Phalguni"
+      aliases: ["Pūrva Phalgunī", "pūrva phalgunī", "Purva Phalguni", "purva phalguni", "पूर्व फाल्गुनी"]
+      properties:
+        tradition: "vedic"
+        number: 11
+        ruler: "Venus"
+        deity: "Bhaga"
+        symbol: "Front legs of bed"
+        gana: "manushya"
+        yoni: "Rat"
+        tattva: "water"
+        caste: "Brahmin"
+        gender: "feminine"
+
+    - canonical: "Uttara Phalguni"
+      aliases: ["Uttara Phalgunī", "uttara phalgunī", "Uttara Phalguni", "uttara phalguni", "उत्तर फाल्गुनी"]
+      properties:
+        tradition: "vedic"
+        number: 12
+        ruler: "Sun"
+        deity: "Aryaman"
+        symbol: "Back legs of bed"
+        gana: "manushya"
+        yoni: "Bull"
+        tattva: "fire"
+        caste: "Kshatriya"
+        gender: "feminine"
+
+    - canonical: "Hasta"
+      aliases: ["हस्त"]
+      properties:
+        tradition: "vedic"
+        number: 13
+        ruler: "Moon"
+        deity: "Savitar"
+        symbol: "Hand/palm"
+        gana: "deva"
+        yoni: "Buffalo"
+        tattva: "air"
+        caste: "Vaishya"
+        gender: "masculine"
+
+    - canonical: "Chitra"
+      aliases: ["Citrā", "citrā", "Citra", "citra", "चित्रा"]
+      properties:
+        tradition: "vedic"
+        number: 14
+        ruler: "Mars"
+        deity: "Vishwakarma"
+        symbol: "Bright jewel/pearl"
+        gana: "rakshasa"
+        yoni: "Tiger"
+        tattva: "fire"
+        caste: "Vaishya"
+        gender: "feminine"
+
+    - canonical: "Swati"
+      aliases: ["Svāti", "svāti", "Svati", "svati", "स्वाति"]
+      properties:
+        tradition: "vedic"
+        number: 15
+        ruler: "Rahu"
+        deity: "Vayu"
+        symbol: "Coral/young plant swaying"
+        gana: "deva"
+        yoni: "Buffalo"
+        tattva: "fire"
+        caste: "Mleccha"
+        gender: "feminine"
+
+    - canonical: "Vishakha"
+      aliases: ["Viśākhā", "viśākhā", "Visakha", "visakha", "विशाखा"]
+      properties:
+        tradition: "vedic"
+        number: 16
+        ruler: "Jupiter"
+        deity: "Indra-Agni"
+        symbol: "Triumphal archway"
+        gana: "rakshasa"
+        yoni: "Tiger"
+        tattva: "fire"
+        caste: "Mleccha"
+        gender: "feminine"
+
+    - canonical: "Anuradha"
+      aliases: ["Anurādhā", "anurādhā", "Anuradha", "anuradha", "अनुराधा"]
+      properties:
+        tradition: "vedic"
+        number: 17
+        ruler: "Saturn"
+        deity: "Mitra"
+        symbol: "Lotus"
+        gana: "deva"
+        yoni: "Hare"
+        tattva: "fire"
+        caste: "Shudra"
+        gender: "masculine"
+
+    - canonical: "Jyeshtha"
+      aliases: ["Jyeṣṭhā", "jyeṣṭhā", "Jyestha", "jyestha", "ज्येष्ठा"]
+      properties:
+        tradition: "vedic"
+        number: 18
+        ruler: "Mercury"
+        deity: "Indra"
+        symbol: "Earring/umbrella"
+        gana: "rakshasa"
+        yoni: "Hare"
+        tattva: "air"
+        caste: "Vaishya"
+        gender: "feminine"
+
+    - canonical: "Mula"
+      aliases: ["Mūla", "mūla", "Mula", "mula", "मूल"]
+      properties:
+        tradition: "vedic"
+        number: 19
+        ruler: "Ketu"
+        deity: "Nirriti"
+        symbol: "Bundle of roots"
+        gana: "rakshasa"
+        yoni: "Dog"
+        tattva: "air"
+        caste: "Mleccha"
+        gender: "neutral"
+
+    - canonical: "Purva Ashadha"
+      aliases: ["Pūrva Āṣāḍhā", "pūrva āṣāḍhā", "Purva Asadha", "purva asadha", "पूर्व आषाढा"]
+      properties:
+        tradition: "vedic"
+        number: 20
+        ruler: "Venus"
+        deity: "Apas (Waters)"
+        symbol: "Elephant's tusk"
+        gana: "manushya"
+        yoni: "Monkey"
+        tattva: "air"
+        caste: "Brahmin"
+        gender: "feminine"
+
+    - canonical: "Uttara Ashadha"
+      aliases: ["Uttara Āṣāḍhā", "uttara āṣāḍhā", "Uttara Asadha", "uttara asadha", "उत्तर आषाढा"]
+      properties:
+        tradition: "vedic"
+        number: 21
+        ruler: "Sun"
+        deity: "Vishwadevas"
+        symbol: "Elephant's tusk"
+        gana: "manushya"
+        yoni: "Mongoose"
+        tattva: "air"
+        caste: "Kshatriya"
+        gender: "feminine"
+
+    - canonical: "Shravana"
+      aliases: ["Śravaṇa", "śravaṇa", "Sravana", "sravana", "श्रवण"]
+      properties:
+        tradition: "vedic"
+        number: 22
+        ruler: "Moon"
+        deity: "Vishnu"
+        symbol: "Three footprints/ear"
+        gana: "deva"
+        yoni: "Monkey"
+        tattva: "air"
+        caste: "Mleccha"
+        gender: "masculine"
+
+    - canonical: "Dhanishtha"
+      aliases: ["Dhaniṣṭhā", "dhaniṣṭhā", "Dhanistha", "dhanistha", "धनिष्ठा"]
+      properties:
+        tradition: "vedic"
+        number: 23
+        ruler: "Mars"
+        deity: "Eight Vasus"
+        symbol: "Drum/flute"
+        gana: "rakshasa"
+        yoni: "Lioness"
+        tattva: "ether"
+        caste: "Vaishya"
+        gender: "feminine"
+
+    - canonical: "Shatabhisha"
+      aliases: ["Śatabhiṣā", "śatabhiṣā", "Satabhisa", "satabhisa", "Shatabisha", "shatabisha", "शतभिषा"]
+      properties:
+        tradition: "vedic"
+        number: 24
+        ruler: "Rahu"
+        deity: "Varuna"
+        symbol: "Empty circle/1000 flowers"
+        gana: "rakshasa"
+        yoni: "Horse"
+        tattva: "ether"
+        caste: "Mleccha"
+        gender: "neutral"
+
+    - canonical: "Purva Bhadrapada"
+      aliases: ["Pūrva Bhādrapadā", "pūrva bhādrapadā", "Purva Bhadrapada", "purva bhadrapada", "पूर्व भाद्रपदा"]
+      properties:
+        tradition: "vedic"
+        number: 25
+        ruler: "Jupiter"
+        deity: "Aja Ekapada"
+        symbol: "Front legs of funeral cot"
+        gana: "manushya"
+        yoni: "Lioness"
+        tattva: "ether"
+        caste: "Brahmin"
+        gender: "masculine"
+
+    - canonical: "Uttara Bhadrapada"
+      aliases: ["Uttara Bhādrapadā", "uttara bhādrapadā", "Uttara Bhadrapada", "uttara bhadrapada", "उत्तर भाद्रपदा"]
+      properties:
+        tradition: "vedic"
+        number: 26
+        ruler: "Saturn"
+        deity: "Ahir Budhnya"
+        symbol: "Back legs of funeral cot"
+        gana: "manushya"
+        yoni: "Cow"
+        tattva: "ether"
+        caste: "Kshatriya"
+        gender: "masculine"
+
+    - canonical: "Revati"
+      aliases: ["Revatī", "revatī", "Revati", "revati", "रेवती"]
+      properties:
+        tradition: "vedic"
+        number: 27
+        ruler: "Mercury"
+        deity: "Pushan"
+        symbol: "Drum/fish"
+        gana: "deva"
+        yoni: "Elephant"
+        tattva: "ether"
+        caste: "Shudra"
+        gender: "feminine"
+
+    - canonical: "Abhijit"
+      aliases: ["Abhijit", "abhijit", "अभिजित"]
+      properties:
+        tradition: "vedic"
+        number: 28
+        ruler: "Brahma"
+        deity: "Brahma"
+        symbol: "Triangle"
+        gana: "deva"
+        yoni: "Mongoose"
+        tattva: "ether"
+        caste: "Vaishya"
+        gender: "masculine"
+
+  # Yogas (keeping major ones from v1.0)
+  Yoga:
+    - canonical: "Gaja Kesari Yoga"
+      traditions: ["vedic"]
+      aliases: ["Gaja Kesari", "gaja kesari", "गज केसरी योग"]
+      properties:
+        tradition: "vedic"
+        category: "raja"
+        benefic: true
+        strength: "very_strong"
+        description: "Jupiter in kendra from Moon"
+
+    - canonical: "Hamsa Yoga"
+      traditions: ["vedic"]
+      aliases: ["Hansa Yoga", "hansa yoga", "हंस योग"]
+      properties:
+        tradition: "vedic"
+        category: "pancha_mahapurusha"
+        benefic: true
+        strength: "very_strong"
+        description: "Jupiter in kendra in own/exaltation"
+
+    - canonical: "Malavya Yoga"
+      traditions: ["vedic"]
+      aliases: ["मालव्य योग"]
+      properties:
+        tradition: "vedic"
+        category: "pancha_mahapurusha"
+        benefic: true
+        strength: "very_strong"
+        description: "Venus in kendra in own/exaltation"
+
+    - canonical: "Sasa Yoga"
+      traditions: ["vedic"]
+      aliases: ["Shasha Yoga", "shasha yoga", "शश योग"]
+      properties:
+        tradition: "vedic"
+        category: "pancha_mahapurusha"
+        benefic: true
+        strength: "very_strong"
+        description: "Saturn in kendra in own/exaltation"
+
+    - canonical: "Ruchaka Yoga"
+      traditions: ["vedic"]
+      aliases: ["रुचक योग"]
+      properties:
+        tradition: "vedic"
+        category: "pancha_mahapurusha"
+        benefic: true
+        strength: "very_strong"
+        description: "Mars in kendra in own/exaltation"
+
+    - canonical: "Bhadra Yoga"
+      traditions: ["vedic"]
+      aliases: ["भद्र योग"]
+      properties:
+        tradition: "vedic"
+        category: "pancha_mahapurusha"
+        benefic: true
+        strength: "very_strong"
+        description: "Mercury in kendra in own/exaltation"
+
+    - canonical: "Neecha Bhanga Raja Yoga"
+      traditions: ["vedic"]
+      aliases: ["Neecha Bhanga", "neecha bhanga", "नीच भंग राज योग"]
+      properties:
+        tradition: "vedic"
+        category: "raja"
+        benefic: true
+        strength: "very_strong"
+        description: "Cancellation of debilitation"
+
+    - canonical: "Viparita Raja Yoga"
+      traditions: ["vedic"]
+      aliases: ["विपरीत राज योग"]
+      properties:
+        tradition: "vedic"
+        category: "vipareeta"
+        benefic: true
+        strength: "moderate"
+        description: "Lords of dusthana in dusthana"
+
+    - canonical: "Dhana Yoga"
+      traditions: ["vedic"]
+      aliases: ["धन योग", "Wealth Yoga", "wealth yoga"]
+      properties:
+        tradition: "vedic"
+        category: "dhana"
+        benefic: true
+        strength: "strong"
+        description: "Connection between wealth-giving houses and lords"
+
+    - canonical: "Kala Sarpa Yoga"
+      traditions: ["vedic"]
+      aliases: ["काल सर्प योग"]
+      properties:
+        tradition: "vedic"
+        category: "special"
+        benefic: false
+        strength: "moderate"
+        description: "All planets between Rahu and Ketu"
+
+  # Divisional Charts (keeping same as v1.0, showing subset)
+  Divisional_Chart:
+    - canonical: "D1"
+      aliases: ["Rasi", "rasi", "Rashi Chart", "rashi chart", "Birth Chart", "birth chart", "Lagna Chart", "lagna chart", "राशि"]
+      properties:
+        tradition: "vedic"
+        division_number: 1
+        significance: "Overall life, body, general nature"
+        importance: "shadavarga"
+
+    - canonical: "D9"
+      aliases: ["Navamsa", "navamsa", "नवांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 9
+        significance: "Spouse, dharma, strength of planets"
+        importance: "shadavarga"
+
+    - canonical: "D10"
+      aliases: ["Dasamsa", "dasamsa", "Dashamsa", "dashamsa", "दशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 10
+        significance: "Career, profession, deeds"
+        importance: "dasavarga"
+
+    - canonical: "D2"
+      aliases: ["Hora", "hora", "होरा"]
+      properties:
+        tradition: "vedic"
+        division_number: 2
+        significance: "Wealth, finances"
+        importance: "shodasavarga"
+
+    - canonical: "D3"
+      aliases: ["Drekkana", "drekkana", "Dreshkana", "dreshkana", "द्रेष्काण"]
+      properties:
+        tradition: "vedic"
+        division_number: 3
+        significance: "Siblings, courage"
+        importance: "shadavarga"
+
+    - canonical: "D4"
+      aliases: ["Chaturthamsa", "chaturthamsa", "चतुर्थांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 4
+        significance: "Property, fortune, mother"
+        importance: "shodasavarga"
+
+    - canonical: "D7"
+      aliases: ["Saptamsa", "saptamsa", "सप्तांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 7
+        significance: "Children, grandchildren"
+        importance: "saptavarga"
+
+    - canonical: "D12"
+      aliases: ["Dwadasamsa", "dwadasamsa", "द्वादशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 12
+        significance: "Parents, ancestors"
+        importance: "shadavarga"
+
+    - canonical: "D16"
+      aliases: ["Shodasamsa", "shodasamsa", "षोडशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 16
+        significance: "Vehicles, comforts, happiness"
+        importance: "shodasavarga"
+
+    - canonical: "D20"
+      aliases: ["Vimsamsa", "vimsamsa", "विंशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 20
+        significance: "Spiritual practices, worship"
+        importance: "shodasavarga"
+
+    - canonical: "D24"
+      aliases: ["Chaturvimsamsa", "chaturvimsamsa", "Siddhamsa", "siddhamsa", "चतुर्विंशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 24
+        significance: "Education, learning"
+        importance: "shodasavarga"
+
+    - canonical: "D27"
+      aliases: ["Nakshatramsa", "nakshatramsa", "Bhamsa", "bhamsa", "नक्षत्रांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 27
+        significance: "Strengths and weaknesses"
+        importance: "shodasavarga"
+
+    - canonical: "D30"
+      aliases: ["Trimsamsa", "trimsamsa", "त्रिंशांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 30
+        significance: "Evils, misfortunes"
+        importance: "shodasavarga"
+
+    - canonical: "D40"
+      aliases: ["Khavedamsa", "khavedamsa", "Chatvarimsamsa", "chatvarimsamsa", "खवेदांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 40
+        significance: "Auspicious and inauspicious effects"
+        importance: "shodasavarga"
+
+    - canonical: "D45"
+      aliases: ["Akshavedamsa", "akshavedamsa", "अक्षवेदांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 45
+        significance: "General indications"
+        importance: "shodasavarga"
+
+    - canonical: "D60"
+      aliases: ["Shashtyamsa", "shashtyamsa", "षष्ट्यांश"]
+      properties:
+        tradition: "vedic"
+        division_number: 60
+        significance: "All matters, past karma"
+        importance: "shodasavarga"
+
+  # Dasha Systems
+  Dasha:
+    - canonical: "Vimshottari Dasha"
+      traditions: ["vedic"]
+      aliases: ["Vimshottari", "vimshottari", "विंशोत्तरी दशा"]
+      properties:
+        tradition: "vedic"
+        system: "vimshottari"
+        sequence_order: 0
+
+    - canonical: "Antardasha"
+      traditions: ["vedic"]
+      aliases: ["Bhukti", "bhukti", "अंतर्दशा"]
+      properties:
+        tradition: "vedic"
+        system: "sub-period"
+        level: "antardasha"
+
+    - canonical: "Pratyantardasha"
+      traditions: ["vedic"]
+      aliases: ["प्रत्यंतर्दशा"]
+      properties:
+        tradition: "vedic"
+        system: "sub-period"
+        level: "pratyantardasha"
+
+  # --------------------------------------------------------------------------
+  # NEW: LifeArea Hierarchy
+  # --------------------------------------------------------------------------
+  LifeArea:
+    # Level 1 (Parent Areas)
+    - canonical: "Health"
+      aliases: ["Physical Health", "physical health", "Body", "body", "स्वास्थ्य"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Mental & Emotional Health"
+      aliases: ["Mind", "mind", "Emotions", "emotions", "मानसिक स्वास्थ्य"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Wealth & Finances"
+      aliases: ["Money", "money", "Finance", "finance", "धन"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Family & Relationships"
+      aliases: ["Relationships", "relationships", "Family", "family", "परिवार"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Career & Work"
+      aliases: ["Career", "career", "Profession", "profession", "कर्म"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Education & Knowledge"
+      aliases: ["Education", "education", "Learning", "learning", "विद्या"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Travel & Movement"
+      aliases: ["Travel", "travel", "Journey", "journey", "यात्रा"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Property & Assets"
+      aliases: ["Property", "property", "Assets", "assets", "संपत्ति"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Challenges & Difficulties"
+      aliases: ["Obstacles", "obstacles", "Problems", "problems", "कठिनाई"]
+      properties:
+        parent: null
+        level: 1
+
+    - canonical: "Transformation & Spirituality"
+      aliases: ["Spirituality", "spirituality", "Moksha", "moksha", "मोक्ष"]
+      properties:
+        parent: null
+        level: 1
+
+    # Level 2 (Child Areas under Health)
+    - canonical: "Physical Health"
+      aliases: ["Body Health", "body health"]
+      properties:
+        parent: "Health"
+        level: 2
+
+    - canonical: "Chronic Disease"
+      aliases: ["Long-term Illness", "long-term illness"]
+      properties:
+        parent: "Health"
+        level: 2
+
+    - canonical: "Acute Illness"
+      aliases: ["Temporary Illness", "temporary illness"]
+      properties:
+        parent: "Health"
+        level: 2
+
+    - canonical: "Vitality"
+      aliases: ["Energy", "energy", "Strength", "strength"]
+      properties:
+        parent: "Health"
+        level: 2
+
+    - canonical: "Accidents & Injuries"
+      aliases: ["Injuries", "injuries", "Trauma", "trauma"]
+      properties:
+        parent: "Health"
+        level: 2
+
+    # Level 2 (Child Areas under Mental & Emotional Health)
+    - canonical: "Anxiety"
+      aliases: ["Worry", "worry", "Fear", "fear"]
+      properties:
+        parent: "Mental & Emotional Health"
+        level: 2
+
+    - canonical: "Depression"
+      aliases: ["Sadness", "sadness", "Melancholy", "melancholy"]
+      properties:
+        parent: "Mental & Emotional Health"
+        level: 2
+
+    - canonical: "Confidence & Self-esteem"
+      aliases: ["Self-confidence", "self-confidence"]
+      properties:
+        parent: "Mental & Emotional Health"
+        level: 2
+
+    - canonical: "Memory & Concentration"
+      aliases: ["Memory", "memory", "Focus", "focus"]
+      properties:
+        parent: "Mental & Emotional Health"
+        level: 2
+
+    # Level 2 (Child Areas under Wealth & Finances)
+    - canonical: "Income"
+      aliases: ["Earnings", "earnings", "Salary", "salary"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    - canonical: "Savings"
+      aliases: ["Accumulated Wealth", "accumulated wealth"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    - canonical: "Investments"
+      aliases: ["Speculations", "speculations"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    - canonical: "Loans & Debts"
+      aliases: ["Debts", "debts", "ऋण"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    - canonical: "Losses & Expenses"
+      aliases: ["Expenditure", "expenditure", "व्यय"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    - canonical: "Inheritance & Legacy"
+      aliases: ["Ancestral Wealth", "ancestral wealth"]
+      properties:
+        parent: "Wealth & Finances"
+        level: 2
+
+    # Level 2 (Child Areas under Family & Relationships)
+    - canonical: "Marriage & Spouse"
+      aliases: ["Marriage", "marriage", "Spouse", "spouse", "विवाह"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Divorce & Separation"
+      aliases: ["Separation", "separation", "Marital Discord", "marital discord"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Children & Fertility"
+      aliases: ["Children", "children", "Offspring", "offspring", "संतान"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Pregnancy & Childbirth"
+      aliases: ["Childbirth", "childbirth"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Parents"
+      aliases: ["Mother & Father", "mother & father"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Mother"
+      aliases: ["Matru", "matru", "माता"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Father"
+      aliases: ["Pitru", "pitru", "पिता"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Siblings"
+      aliases: ["Brothers & Sisters", "brothers & sisters", "भाई-बहन"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    - canonical: "Friends & Social Circle"
+      aliases: ["Friends", "friends", "मित्र"]
+      properties:
+        parent: "Family & Relationships"
+        level: 2
+
+    # Level 2 (Child Areas under Career & Work)
+    - canonical: "Profession & Vocation"
+      aliases: ["Career Choice", "career choice"]
+      properties:
+        parent: "Career & Work"
+        level: 2
+
+    - canonical: "Job Stability"
+      aliases: ["Employment Security", "employment security"]
+      properties:
+        parent: "Career & Work"
+        level: 2
+
+    - canonical: "Business & Entrepreneurship"
+      aliases: ["Business", "business", "व्यापार"]
+      properties:
+        parent: "Career & Work"
+        level: 2
+
+    - canonical: "Leadership & Authority"
+      aliases: ["Power", "power", "Authority", "authority"]
+      properties:
+        parent: "Career & Work"
+        level: 2
+
+    - canonical: "Reputation & Fame"
+      aliases: ["Fame", "fame", "यश"]
+      properties:
+        parent: "Career & Work"
+        level: 2
+
+    # Level 2 (Child Areas under Education & Knowledge)
+    - canonical: "Basic Education"
+      aliases: ["Primary Education", "primary education"]
+      properties:
+        parent: "Education & Knowledge"
+        level: 2
+
+    - canonical: "Higher Education"
+      aliases: ["University", "university", "College", "college"]
+      properties:
+        parent: "Education & Knowledge"
+        level: 2
+
+    - canonical: "Spiritual Knowledge"
+      aliases: ["Dharma Learning", "dharma learning"]
+      properties:
+        parent: "Education & Knowledge"
+        level: 2
+
+    # Level 2 (Child Areas under Travel & Movement)
+    - canonical: "Short Travel"
+      aliases: ["Local Travel", "local travel"]
+      properties:
+        parent: "Travel & Movement"
+        level: 2
+
+    - canonical: "Long-distance Travel"
+      aliases: ["Pilgrimage", "pilgrimage", "तीर्थयात्रा"]
+      properties:
+        parent: "Travel & Movement"
+        level: 2
+
+    - canonical: "Foreign Travel"
+      aliases: ["International Travel", "international travel"]
+      properties:
+        parent: "Travel & Movement"
+        level: 2
+
+    - canonical: "Foreign Residence"
+      aliases: ["Living Abroad", "living abroad"]
+      properties:
+        parent: "Travel & Movement"
+        level: 2
+
+    # Level 2 (Child Areas under Property & Assets)
+    - canonical: "Land & Real Estate"
+      aliases: ["Property", "property", "भूमि"]
+      properties:
+        parent: "Property & Assets"
+        level: 2
+
+    - canonical: "Home & Residence"
+      aliases: ["House", "house", "घर"]
+      properties:
+        parent: "Property & Assets"
+        level: 2
+
+    - canonical: "Vehicles"
+      aliases: ["Car", "car", "वाहन"]
+      properties:
+        parent: "Property & Assets"
+        level: 2
+
+    # Level 2 (Child Areas under Challenges & Difficulties)
+    - canonical: "Enemies & Opposition"
+      aliases: ["Enemies", "enemies", "शत्रु"]
+      properties:
+        parent: "Challenges & Difficulties"
+        level: 2
+
+    - canonical: "Obstacles & Delays"
+      aliases: ["Hindrances", "hindrances"]
+      properties:
+        parent: "Challenges & Difficulties"
+        level: 2
+
+    - canonical: "Litigation & Legal Issues"
+      aliases: ["Court Cases", "court cases"]
+      properties:
+        parent: "Challenges & Difficulties"
+        level: 2
+
+    - canonical: "Debt Traps"
+      aliases: ["Financial Burden", "financial burden"]
+      properties:
+        parent: "Challenges & Difficulties"
+        level: 2
+
+    - canonical: "Isolation & Loneliness"
+      aliases: ["Solitude", "solitude"]
+      properties:
+        parent: "Challenges & Difficulties"
+        level: 2
+
+    # Level 2 (Child Areas under Transformation & Spirituality)
+    - canonical: "Death & Longevity"
+      aliases: ["Longevity", "longevity", "आयु"]
+      properties:
+        parent: "Transformation & Spirituality"
+        level: 2
+
+    - canonical: "Sudden Events"
+      aliases: ["Unexpected Changes", "unexpected changes"]
+      properties:
+        parent: "Transformation & Spirituality"
+        level: 2
+
+    - canonical: "Occult & Mysticism"
+      aliases: ["Tantra", "tantra", "तंत्र"]
+      properties:
+        parent: "Transformation & Spirituality"
+        level: 2
+
+    - canonical: "Meditation & Sadhana"
+      aliases: ["Spiritual Practice", "spiritual practice"]
+      properties:
+        parent: "Transformation & Spirituality"
+        level: 2
+
+    - canonical: "Moksha & Liberation"
+      aliases: ["Liberation", "liberation", "मोक्ष"]
+      properties:
+        parent: "Transformation & Spirituality"
+        level: 2
+
+# RELATIONSHIP TYPES
+
+relationship_types:
+
+  # Core relationships (keeping all from v1.0)
+  - name: "RULES"
+    from_types: ["Planet"]
+    to_types: ["Sign"]
+    description: "Planet is the ruler/lord of a sign"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} rules {sign}"
+      - "{planet} is the lord of {sign}"
+      - "{planet} is the ruler of {sign}"
+      - "{planet} owns {sign}"
+      - "{sign} is ruled by {planet}"
+      - "{sign} is owned by {planet}"
+      - "{planet} lordship of {sign}"
+      - "{planet} का स्वामी {sign}"
+
+  - name: "RULES_NAKSHATRA"
+    from_types: ["Planet"]
+    to_types: ["Nakshatra"]
+    description: "Planet is the lord of a nakshatra"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} rules {nakshatra}"
+      - "{planet} is the lord of {nakshatra}"
+      - "{nakshatra} is ruled by {planet}"
+
+  - name: "IS_LORD_OF"
+    from_types: ["Planet"]
+    to_types: ["House"]
+    description: "Planet is the lord of a house (based on sign occupying the house cusp)"
+    bidirectional: false
+    properties:
+      - name: "house_number"
+        type: "integer"
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        description: "The house number this planet lords"
+    extraction_patterns:
+      # Standard house lord patterns
+      - "{planet} is the lord of the {ordinal} house"
+      - "{planet} is the {ordinal} lord"
+      - "{planet} is the {ordinal} house lord"
+      - "{planet} lords the {ordinal} house"
+      - "lord of {ordinal} house is {planet}"
+      - "{ordinal} lord {planet}"
+      - "{ordinal} house lord {planet}"
+      # Numeric patterns
+      - "{planet} is the lord of house {number}"
+      - "{planet} is the {number}th lord"
+      - "{planet} is the {number}th house lord"
+      # Named house patterns
+      - "{planet} is the lagna lord"
+      - "{planet} is the ascendant lord"
+      - "lagnesh {planet}"
+      - "lagnesa {planet}"
+      # Specific house names
+      - "{planet} is the dhana lord"
+      - "{planet} is the labha lord"
+      - "{planet} is the randhra lord"
+      - "{planet} is the vyaya lord"
+      - "{planet} is the karma lord"
+      - "{planet} is the dharma lord"
+      # Passive voice
+      - "the {ordinal} house is lorded by {planet}"
+      - "the {ordinal} house has {planet} as its lord"
+      # Sanskrit/IAST
+      - "{planet} {ordinal} भाव स्वामी"
+      - "{planet} {ordinal} bhāva svāmī"
+      - "{planet} {ordinal} bhava swami"
+      - "भावेश {planet}"
+      - "bhāveśa {planet}"
+
+  - name: "OCCUPIES"
+    from_types: ["Planet"]
+    to_types: ["House", "Sign"]
+    description: "Planet occupies/is placed in a house or sign"
+    bidirectional: false
+    extraction_patterns:
+      # Active voice
+      - "{planet} occupies {house}"
+      - "{planet} is in {house}"
+      - "{planet} is placed in {house}"
+      - "{planet} is posited in {house}"
+      - "{planet} sits in {house}"
+      - "{planet} is positioned in {house}"
+      - "{planet} tenants {house}"
+      # With ordinal house numbers
+      - "{planet} in the {ordinal} house"
+      - "{planet} in {ordinal} house"
+      - "{planet} in the {ordinal}"
+      # Passive voice
+      - "the {house} is occupied by {planet}"
+      - "{house} has {planet}"
+      - "{house} contains {planet}"
+      # Sanskrit/IAST
+      - "{planet} {house} में स्थित"
+      - "{planet} {house} sthita"
+
+  # Standardized names to match relationship_normalization canonical forms
+  - name: "IS_EXALTED_IN"
+    from_types: ["Planet"]
+    to_types: ["Sign"]
+    description: "Planet gains maximum strength (uccha) in this sign"
+    bidirectional: false
+    extraction_patterns:
+      # Active voice
+      - "{planet} is exalted in {sign}"
+      - "{planet} gets exaltation in {sign}"
+      - "{planet} has uccha in {sign}"
+      - "{planet} attains exaltation in {sign}"
+      - "{planet} is in exaltation in {sign}"
+      # Passive voice
+      - "exaltation of {planet} in {sign}"
+      - "{sign} is the exaltation sign of {planet}"
+      - "{sign} exalts {planet}"
+      # Sanskrit
+      - "{planet} उच्च {sign}"
+      - "{planet} ucca {sign}"
+
+  - name: "IS_DEBILITATED_IN"
+    from_types: ["Planet"]
+    to_types: ["Sign"]
+    description: "Planet is weakest (neecha) in this sign"
+    bidirectional: false
+    extraction_patterns:
+      # Active voice
+      - "{planet} is debilitated in {sign}"
+      - "{planet} gets debilitation in {sign}"
+      - "{planet} has neecha in {sign}"
+      - "{planet} is in fall in {sign}"
+      - "{planet} falls in {sign}"
+      # Passive voice
+      - "debilitation of {planet} in {sign}"
+      - "{sign} is the debilitation sign of {planet}"
+      - "{sign} debilitates {planet}"
+      # Sanskrit
+      - "{planet} नीच {sign}"
+      - "{planet} nīca {sign}"
+      - "{planet} neecha {sign}"
+
+  - name: "IS_MOOLATRIKONA_IN"
+    from_types: ["Planet"]
+    to_types: ["Sign"]
+    description: "Planet's moolatrikona (root trine) sign"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} has moolatrikona in {sign}"
+      - "{planet} has mooltrikona in {sign}"
+      - "moolatrikona of {planet} is {sign}"
+      - "{sign} is the moolatrikona of {planet}"
+      - "{planet} मूल त्रिकोण {sign}"
+      - "{planet} mūlatrikoṇa {sign}"
+
+  - name: "IS_FRIEND_OF"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Natural friendship between planets"
+    bidirectional: true
+    extraction_patterns:
+      - "{planet1} is a natural friend of {planet2}"
+      - "{planet1} and {planet2} are natural friends"
+      - "{planet1} is friends with {planet2}"
+      - "natural friendship between {planet1} and {planet2}"
+      - "{planet1} is a friend of {planet2}"
+      - "{planet1} is friendly towards {planet2}"
+      - "{planet1} is friendly to {planet2}"
+      - "{planet1} मित्र {planet2}"
+
+  - name: "IS_ENEMY_OF"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Natural enmity between planets"
+    bidirectional: true
+    extraction_patterns:
+      - "{planet1} is a natural enemy of {planet2}"
+      - "{planet1} and {planet2} are natural enemies"
+      - "natural enmity between {planet1} and {planet2}"
+      - "{planet1} is an enemy of {planet2}"
+      - "{planet1} is inimical to {planet2}"
+      - "{planet1} is hostile to {planet2}"
+      - "{planet1} शत्रु {planet2}"
+
+  - name: "IS_NEUTRAL_TO"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Natural neutrality between planets"
+    bidirectional: true
+    extraction_patterns:
+      - "{planet1} is neutral to {planet2}"
+      - "{planet1} and {planet2} are neutral"
+      - "{planet1} is neither friend nor enemy of {planet2}"
+      - "neutral relationship between {planet1} and {planet2}"
+      - "{planet1} सम {planet2}"
+
+  - name: "ASPECTS"
+    from_types: ["Planet", "Sign", "House"]
+    to_types: ["Planet", "Sign", "House"]
+    description: "Planetary aspect/sight (drishti)"
+    bidirectional: false
+    properties:
+      - name: "aspect_type"
+        type: "string"
+        values: ["full", "three_quarter", "half", "quarter"]
+      - name: "degrees"
+        type: "integer"
+    extraction_patterns:
+      - "{entity1} aspects {entity2}"
+      - "{entity1} casts aspect on {entity2}"
+      - "{entity1} has drishti on {entity2}"
+      - "{entity1} दृष्टि {entity2}"
+      - "{planet1} casts its {aspect_type} on {planet2}"
+      - "{planet1} has {aspect_type} to {planet2}"
+      - "{planet1} aspects the {house} house"
+
+  - name: "LOCATED_IN"
+    from_types: ["Nakshatra"]
+    to_types: ["Sign"]
+    description: "Nakshatra is located within a sign"
+    bidirectional: false
+    extraction_patterns:
+      - "{nakshatra} is located in {sign}"
+      - "{nakshatra} falls in {sign}"
+      - "{nakshatra} spans {sign}"
+
+  - name: "FORMS_YOGA"
+    from_types: ["Planet"]
+    to_types: ["Yoga"]
+    description: "Planet(s) involved in forming a yoga"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} forms {yoga}"
+      - "{yoga} is formed by {planet}"
+      - "{planet} creates {yoga}"
+      - "{planet} participates in {yoga}"
+      - "{yoga} is formed when {planet1} is with {planet2}"
+      - "{planet1} and {planet2} form {yoga}"
+      - "{yoga} occurs when {condition}"
+
+  - name: "REQUIRES_PLACEMENT"
+    from_types: ["Yoga"]
+    to_types: ["House", "Sign"]
+    description: "Yoga requires planet in specific house/sign"
+    bidirectional: false
+    extraction_patterns:
+      - "{yoga} requires planet in {house}"
+      - "for {yoga}, planet must be in {house}"
+
+  - name: "PRODUCES_EFFECT"
+    from_types: ["Yoga", "Planet", "House"]
+    to_types: ["Effect", "LifeArea"]
+    description: "Entity produces a specific astrological effect or impacts a life area"
+    bidirectional: false
+    extraction_patterns:
+      - "{entity} produces {effect}"
+      - "{entity} gives {effect}"
+      - "{entity} results in {effect}"
+      - "{entity} causes {effect}"
+      - "{entity} indicates {effect}"
+      - "{entity} फल {effect}"
+      - "{yoga} gives {effect} in {life_area}"
+      - "{yoga} produces {effect} related to {life_area}"
+
+  - name: "SIGNIFIES"
+    from_types: ["House", "Planet", "Sign"]
+    to_types: ["Effect", "LifeArea"]
+    description: "Entity signifies or represents a life area"
+    bidirectional: false
+    extraction_patterns:
+      - "{entity} signifies {effect}"
+      - "{entity} represents {effect}"
+      - "{entity} indicates {effect}"
+      - "{entity} governs {effect}"
+      - "{entity} rules {effect}"
+
+  - name: "KARAKA_FOR"
+    from_types: ["Planet"]
+    to_types: ["Effect", "House", "LifeArea"]
+    description: "Planet is natural significator (karaka) for an area"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} is karaka for {area}"
+      - "{planet} is the significator of {area}"
+      - "{planet} represents {area}"
+      - "{planet} कारक {area}"
+
+  - name: "DASHA_SEQUENCE"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Sequential order in dasha system"
+    bidirectional: false
+    properties:
+      - name: "dasha_system"
+        type: "string"
+        values: ["vimshottari", "ashtottari", "yogini"]
+    extraction_patterns:
+      - "after {planet1} dasha comes {planet2} dasha"
+      - "{planet1} dasha is followed by {planet2} dasha"
+
+  - name: "HAS_DASHA_DURATION"
+    from_types: ["Planet"]
+    to_types: ["Dasha"]
+    description: "Planet's dasha duration in specific system"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} has {duration} years in {system} dasha"
+      - "{planet} dasha lasts {duration} years"
+
+  - name: "EVALUATED_IN"
+    from_types: ["Planet", "House"]
+    to_types: ["Divisional_Chart"]
+    description: "Entity's strength evaluated in specific varga"
+    bidirectional: false
+    extraction_patterns:
+      - "{entity} in {chart}"
+      - "examine {entity} in {chart}"
+      - "{chart} shows {entity}"
+
+  - name: "TRANSITS"
+    from_types: ["Planet"]
+    to_types: ["Sign", "House"]
+    description: "Current transit position (gochara)"
+    bidirectional: false
+    properties:
+      - name: "transit_date"
+        type: "string"
+    extraction_patterns:
+      - "{planet} transits {sign}"
+      - "{planet} is transiting {sign}"
+      - "transit of {planet} in {sign}"
+      - "{planet} गोचर {sign}"
+
+  - name: "CONJUNCTS"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Planetary conjunction (yuti)"
+    bidirectional: true
+    extraction_patterns:
+      - "{planet1} conjunct {planet2}"
+      - "{planet1} in conjunction with {planet2}"
+      - "{planet1} conjoins {planet2}"
+      - "{planet1} is conjunct with {planet2}"
+      - "{planet1} is in conjunction with {planet2}"
+      - "{planet1} and {planet2} are conjunct"
+      - "{planet1} and {planet2} together"
+      - "conjunction of {planet1} and {planet2}"
+      - "{planet1} युति {planet2}"
+      - "{planet1} yuti {planet2}"
+
+  # --------------------------------------------------------------------------
+  # NEW: Planetary State Relationships (v1.6)
+  # --------------------------------------------------------------------------
+  - name: "IS_COMBUST"
+    from_types: ["Planet"]
+    to_types: ["Planet"]
+    description: "Planet is combust (asta) due to proximity to Sun"
+    bidirectional: false
+    properties:
+      - name: "degrees"
+        type: "number"
+        description: "Degree proximity to Sun"
+    extraction_patterns:
+      # Active voice
+      - "{planet} is combust"
+      - "{planet} is in combustion"
+      - "{planet} is asta"
+      - "{planet} is burnt"
+      - "{planet} is combust by Sun"
+      - "{planet} is too close to Sun"
+      - "combust {planet}"
+      # Passive voice
+      - "combustion of {planet}"
+      - "{planet} suffers combustion"
+      # Sanskrit/IAST
+      - "{planet} अस्त"
+      - "{planet} asta"
+
+  # DEPRECATED: IS_RETROGRADE converted to Planet.is_retrograde property (v1.6 rev3)
+  # Keeping patterns for property extraction
+  - name: "IS_RETROGRADE"
+    from_types: ["Planet"]
+    to_types: []
+    description: "DEPRECATED - Use Planet.is_retrograde property instead. Planet is in retrograde motion (vakri)"
+    deprecated: true
+    deprecated_reason: "State without target node - better modeled as boolean property"
+    migrate_to: "Planet.is_retrograde"
+    bidirectional: false
+    property_extraction_patterns:
+      # These patterns should set Planet.is_retrograde = true
+      # Active voice
+      - "{planet} is retrograde"
+      - "{planet} is vakri"
+      - "{planet} is in retrograde motion"
+      - "{planet} is moving backward"
+      - "retrograde {planet}"
+      - "{planet} turns retrograde"
+      - "{planet} goes retrograde"
+      # Passive voice
+      - "retrograde motion of {planet}"
+      - "{planet} in retrogression"
+      # Sanskrit/IAST
+      - "{planet} वक्री"
+      - "{planet} vakrī"
+
+  - name: "IS_HEMMED_BY"
+    from_types: ["Planet", "House"]
+    to_types: ["Planet"]
+    description: "Entity is hemmed (surrounded) by malefics (papakartari) or benefics (shubhakartari)"
+    bidirectional: false
+    properties:
+      - name: "kartari_type"
+        type: "string"
+        values: ["papakartari", "shubhakartari"]
+        description: "Type of hemming - malefic or benefic"
+    extraction_patterns:
+      # Papakartari (malefic hemming)
+      - "{entity} is hemmed by malefics"
+      - "{entity} is in papakartari"
+      - "{entity} has papakartari yoga"
+      - "{entity} is surrounded by malefics"
+      - "malefics on both sides of {entity}"
+      - "{entity} is between {malefic1} and {malefic2}"
+      # Shubhakartari (benefic hemming)
+      - "{entity} is hemmed by benefics"
+      - "{entity} is in shubhakartari"
+      - "{entity} has shubhakartari yoga"
+      - "{entity} is surrounded by benefics"
+      - "benefics on both sides of {entity}"
+      # Sanskrit/IAST
+      - "{entity} पापकर्तरी"
+      - "{entity} शुभकर्तरी"
+      - "{entity} pāpakartarī"
+      - "{entity} śubhakartarī"
+
+  # DEPRECATED: IS_VARGOTTAMA converted to Planet.is_vargottama property (v1.6 rev3)
+  # Keeping patterns for property extraction
+  - name: "IS_VARGOTTAMA"
+    from_types: ["Planet"]
+    to_types: []
+    description: "DEPRECATED - Use Planet.is_vargottama property instead. Planet occupies same sign in rashi and navamsa charts"
+    deprecated: true
+    deprecated_reason: "State without target node - better modeled as boolean property"
+    migrate_to: "Planet.is_vargottama"
+    bidirectional: false
+    property_extraction_patterns:
+      # These patterns should set Planet.is_vargottama = true
+      - "{planet} is vargottama"
+      - "{planet} is in vargottama"
+      - "vargottama {planet}"
+      - "{planet} occupies same sign in rashi and navamsa"
+      - "{planet} in same sign in D1 and D9"
+      - "{planet} वर्गोत्तम"
+      - "{planet} vargottama"
+
+  - name: "IS_IN_OWN_SIGN"
+    from_types: ["Planet"]
+    to_types: ["Sign"]
+    description: "Planet is in its own sign (svakshetra)"
+    bidirectional: false
+    extraction_patterns:
+      - "{planet} is in own sign"
+      - "{planet} is in its own sign"
+      - "{planet} in svakshetra"
+      - "{planet} in own house"
+      - "{planet} is svakshetri"
+      - "own sign {planet}"
+      - "{planet} स्वक्षेत्री"
+      - "{planet} svakṣetrī"
+
+  - name: "STRENGTHENS"
+    from_types: ["Planet", "Sign", "House", "Yoga"]
+    to_types: ["Planet"]
+    description: "Entity strengthens another planet"
+    bidirectional: false
+    reverse: "IS_STRENGTHENED_BY"
+    extraction_patterns:
+      - "{entity1} strengthens {planet}"
+      - "{entity1} enhances {planet}"
+      - "{entity1} improves {planet}"
+      - "{entity1} fortifies {planet}"
+      - "{entity1} supports {planet}"
+      - "{entity1} boosts {planet}"
+
+  - name: "IS_STRENGTHENED_BY"
+    from_types: ["Planet"]
+    to_types: ["Planet", "Sign", "House", "Yoga"]
+    description: "Planet is strengthened by another entity (inverse of STRENGTHENS)"
+    bidirectional: false
+    reverse: "STRENGTHENS"
+    extraction_patterns:
+      - "{planet} is strengthened by {entity}"
+      - "{planet} is enhanced by {entity}"
+      - "{planet} is supported by {entity}"
+      - "{planet} gains strength from {entity}"
+      - "{planet} benefits from {entity}"
+
+  - name: "WEAKENS"
+    from_types: ["Planet", "Sign", "House", "Yoga"]
+    to_types: ["Planet"]
+    description: "Entity weakens another planet"
+    bidirectional: false
+    reverse: "IS_WEAKENED_BY"
+    extraction_patterns:
+      - "{entity1} weakens {planet}"
+      - "{entity1} afflicts {planet}"
+      - "{entity1} damages {planet}"
+      - "{entity1} harms {planet}"
+      - "{entity1} debilitates {planet}"
+
+  - name: "IS_WEAKENED_BY"
+    from_types: ["Planet"]
+    to_types: ["Planet", "Sign", "House", "Yoga"]
+    description: "Planet is weakened by another entity (inverse of WEAKENS)"
+    bidirectional: false
+    reverse: "WEAKENS"
+    extraction_patterns:
+      - "{planet} is weakened by {entity}"
+      - "{planet} is afflicted by {entity}"
+      - "{planet} is harmed by {entity}"
+      - "{planet} suffers from {entity}"
+      - "{planet} is damaged by {entity}"
+
+  # --------------------------------------------------------------------------
+  # NEW: Chart Context Relationships (v1.6 rev3 - per ontology review)
+  # --------------------------------------------------------------------------
+  - name: "OCCURS_IN"
+    from_types: ["Yoga", "InterpretationRule", "Dasha"]
+    to_types: ["Divisional_Chart"]
+    description: |
+      Links yogas, rules, or dashas to the chart context where they manifest.
+      Essential for chart-specific interpretations.
+      Example: "Hamsa Yoga occurs in the D1 chart" → OCCURS_IN → D1
+    bidirectional: false
+    reverse: "HAS_OCCURRENCE"
+    extraction_patterns:
+      - "{yoga} in {chart}"
+      - "{yoga} forms in {chart}"
+      - "{yoga} occurs in {chart}"
+      - "{yoga} is present in {chart}"
+      - "{yoga} manifests in {chart}"
+      - "{chart} has {yoga}"
+      - "{chart} shows {yoga}"
+      - "in {chart}, {yoga} is formed"
+      # Navamsa specific
+      - "{yoga} in navamsa"
+      - "navamsa shows {yoga}"
+      # D10 career
+      - "{yoga} in dasamsa"
+      - "dasamsa shows {yoga}"
+
+  - name: "HAS_OCCURRENCE"
+    from_types: ["Divisional_Chart"]
+    to_types: ["Yoga", "InterpretationRule", "Dasha"]
+    description: "Chart contains/shows a yoga, rule, or dasha (inverse of OCCURS_IN)"
+    bidirectional: false
+    reverse: "OCCURS_IN"
+    extraction_patterns:
+      - "{chart} contains {yoga}"
+      - "{chart} has {yoga}"
+      - "{chart} shows {yoga}"
+
+  # --------------------------------------------------------------------------
+  # NEW: InterpretationRule Relationships
+  # --------------------------------------------------------------------------
+  - name: "CONDITION"
+    from_types: ["InterpretationRule"]
+    to_types: ["Planet", "House", "Sign", "AspectType", "Yoga", "Dasha"]
+    description: |
+      Condition (placement, aspect, dasha, yoga) that must be met for the interpretation rule.
+      Example: For "Saturn in 7th delays marriage", this links the rule to Saturn and House 7.
+    bidirectional: false
+    extraction_patterns:
+      - "When {planet} is in {house}"
+      - "If {planet} occupies {sign}"
+      - "During {dasha} of {planet}"
+      - "When {planet1} aspects {planet2}"
+      - "When {yoga} is present"
+
+  - name: "AFFECTS"
+    from_types: ["InterpretationRule", "Yoga"]
+    to_types: ["LifeArea"]
+    description: |
+      Interpretive rule or yoga affects specific life areas.
+      Example: "Saturn in 7th delays marriage" → AFFECTS → "Marriage & Spouse"
+    bidirectional: false
+    extraction_patterns:
+      - "This combination affects {life_area}"
+      - "results in {life_area} matters"
+      - "impacts {life_area}"
+      - "influences {life_area}"
+
+  - name: "DEFINED_IN"
+    from_types: ["InterpretationRule", "Yoga", "Planet", "Sign", "House", "Nakshatra"]
+    to_types: ["Work"]
+    description: "Rule, yoga, or entity definition is found in a particular work"
+    bidirectional: false
+    extraction_patterns:
+      - "{rule_or_yoga} is described in {work}"
+      - "{work} states that {rule}"
+      - "according to {work}"
+
+# EXTRACTION CONFIGURATION
+
+extraction_config:
+
+  # --------------------------------------------------------------------------
+  # Enhanced System Prompt (Incorporating InterpretationRule)
+  # --------------------------------------------------------------------------
+  system_prompt: |
+    You are extracting structured astrological knowledge for a knowledge graph.
+    You MUST use the provided schema to identify:
+    - Entities: Planet, Sign, House, Nakshatra, Yoga, Dasha, LifeArea, InterpretationRule, Work
+    - Relationships defined in relationship_types
+    
+    CRITICAL GUIDELINES:
+    
+    1. ENTITY NORMALIZATION:
+       - Use canonical names from known_entities lists
+       - Recognize Sanskrit aliases and normalize to English canonical
+       - Example: "Shani" → "Saturn", "Mesha" → "Aries"
+    
+    2. LIFE AREAS:
+       - Map concrete life topics to the closest LifeArea from the hierarchy
+       - Example: "marriage" → "Marriage & Spouse", "wealth" → "Wealth & Finances"
+    
+    3. INTERPRETATION RULES:
+       - For conditional statements like "Saturn in the 7th delays marriage":
+         * Create an InterpretationRule node
+         * Link CONDITION to Saturn and House 7
+         * Link AFFECTS to "Marriage & Spouse" LifeArea
+         * Set polarity="malefic", context="placement"
+       - For aspect statements like "Jupiter's aspect on 5th gives children":
+         * Create InterpretationRule
+         * CONDITION → Jupiter, AspectType, House 5
+         * AFFECTS → "Children & Fertility"
+    
+    4. YOGAS:
+       - Extract yoga formation conditions
+       - Link planets involved via FORMS_YOGA
+       - Link effects via PRODUCES_EFFECT or create InterpretationRule
+    
+    5. AVOID:
+       - Example horoscopes and birth data
+       - Specific dates/times/coordinates
+       - Personal names (unless classical authors)
+       - Mathematical calculations without context
+    
+    6. FOCUS ON:
+       - General principles and rules
+       - Planetary lordships and dignities
+       - House significations
+       - Yoga definitions
+       - Dasha effects
+       - Conditional interpretations
+
+  # --------------------------------------------------------------------------
+  # Extraction Prompts for Different Passes
+  # --------------------------------------------------------------------------
+  prompts:
+    general: |
+      Extract general astrological knowledge including:
+      - Planets and their properties
+      - Signs and their characteristics
+      - Houses and their significations
+      - Basic relationships between entities
+    
+    rulerships: |
+      Extract planetary lordships and dignities:
+      - Rulership: which planet rules which sign
+      - Exaltation: where planets gain maximum strength
+      - Debilitation: where planets are weakest
+      - Moolatrikona: root trine positions
+      - Friendship/enmity between planets
+    
+    yogas: |
+      Extract planetary combinations (yogas):
+      - Yoga names and formation conditions
+      - Which planets are involved
+      - Required house/sign placements
+      - Effects and results (phala)
+      - Link to appropriate LifeAreas
+    
+    conditional_rules: |
+      Extract conditional interpretative statements:
+      - "Planet X in House Y gives effect Z"
+      - "When Planet A aspects Planet B, result C occurs"
+      - "During Dasha of Planet P, effect E manifests"
+      Create InterpretationRule nodes with CONDITION and AFFECTS relationships.
+    
+    house_significations: |
+      Extract house significations:
+      - What each house represents (karakatva)
+      - Effects of planets in different houses
+      - Link to LifeArea hierarchy
+    
+    nakshatras: |
+      Extract nakshatra information:
+      - Nakshatra names and properties
+      - Ruling planets
+      - Sign locations
+      - Pada divisions
+
+  # --------------------------------------------------------------------------
+  # Include/Exclude Patterns
+  # --------------------------------------------------------------------------
+  include_patterns:
+    - "planetary rulership"
+    - "exaltation and debilitation"
+    - "planet in house"
+    - "planet in sign"
+    - "yoga definitions"
+    - "dasha results"
+    - "aspect relationships"
+    - "friendship and enmity"
+    - "when planet"
+    - "if planet"
+    - "gives result"
+    - "produces effect"
+    - "delays"
+    - "enhances"
+    - "destroys"
+    - "promotes"
+
+  exclude_patterns:
+    - "example horoscope"
+    - "birth chart of"
+    - "born on"
+    - "date of birth"
+    - "ephemeris"
+    - "table of longitudes"
+    - "mathematical calculations only"
+    - "Mr."
+    - "Mrs."
+    - "celebrity"
+
+  # --------------------------------------------------------------------------
+  # Post-Processing Configuration
+  # --------------------------------------------------------------------------
+  post_processing:
+    
+    property_extraction:
+      enabled: true
+      patterns:
+        - pattern: "{entity} is a {property_value} planet"
+          action: "set_property"
+          entity_type: "Planet"
+          property_name: "nature"
+          property_values:
+            - "benefic"
+            - "malefic"
+            - "neutral"
+        
+        - pattern: "{entity} is {property_value}"
+          action: "set_property"
+          entity_type: "Planet"
+          property_name: "gender"
+          property_values:
+            - "masculine"
+            - "feminine"
+            - "neutral"
+            - "eunuch"
+    
+    entity_validation:
+      enabled: true
+      validate_against_known_entities: true
+      fuzzy_match_threshold: 0.85
+      flag_unknown_entities: true
+      apply_alias_normalization: true
+      normalize_case: true
+    
+    relationship_validation:
+      enabled: true
+      validate_entity_types: true
+      check_contradictions: true
+      contradictions:
+        - ["EXALTED_IN", "DEBILITATED_IN"]
+        - ["NATURAL_FRIEND", "NATURAL_ENEMY"]
+      detect_duplicate_relationships: true
+    
+    # NEW: InterpretationRule creation from conditional statements
+    rule_extraction:
+      enabled: true
+      patterns:
+        - pattern: "{planet} in {house} {verb} {life_area}"
+          action: "create_interpretation_rule"
+          verbs: ["delays", "gives", "destroys", "enhances", "promotes", "causes", "produces", "indicates"]
+          link_condition: ["{planet}", "{house}"]
+          link_affects: ["{life_area}"]
+          infer_polarity: true  # Infer from verb (delays=malefic, gives=benefic)
+    
+    # Property inference from relationships
+    property_inference:
+      enabled: true
+      rules:
+        # Infer planet nature from rulership
+        - if_relationship: "RULES"
+          from_entity: "Mars"
+          to_entity: "Aries"
+          infer_property:
+            entity: "Mars"
+            property: "nature"
+            value: "malefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Mars"
+          to_entity: "Scorpio"
+          infer_property:
+            entity: "Mars"
+            property: "nature"
+            value: "malefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Jupiter"
+          to_entity: "Sagittarius"
+          infer_property:
+            entity: "Jupiter"
+            property: "nature"
+            value: "benefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Jupiter"
+          to_entity: "Pisces"
+          infer_property:
+            entity: "Jupiter"
+            property: "nature"
+            value: "benefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Venus"
+          to_entity: "Taurus"
+          infer_property:
+            entity: "Venus"
+            property: "nature"
+            value: "benefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Venus"
+          to_entity: "Libra"
+          infer_property:
+            entity: "Venus"
+            property: "nature"
+            value: "benefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Saturn"
+          to_entity: "Capricorn"
+          infer_property:
+            entity: "Saturn"
+            property: "nature"
+            value: "malefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Saturn"
+          to_entity: "Aquarius"
+          infer_property:
+            entity: "Saturn"
+            property: "nature"
+            value: "malefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Sun"
+          to_entity: "Leo"
+          infer_property:
+            entity: "Sun"
+            property: "nature"
+            value: "malefic"
+            confidence: 1.0
+        
+        - if_relationship: "RULES"
+          from_entity: "Moon"
+          to_entity: "Cancer"
+          infer_property:
+            entity: "Moon"
+            property: "nature"
+            value: "benefic"
+            confidence: 1.0
+        
+        # Infer sign modality from element patterns
+        - if_property: "element"
+          property_value: "fire"
+          entity_type: "Sign"
+          infer_property:
+            property: "guna"
+            value: "rajasic"
+            confidence: 0.8
+        
+        # Infer house category from number
+        - if_property: "number"
+          property_value: [1, 4, 7, 10]
+          entity_type: "House"
+          infer_property:
+            property: "category"
+            value: "kendra"
+            confidence: 1.0
+        
+        - if_property: "number"
+          property_value: [5, 9]
+          entity_type: "House"
+          infer_property:
+            property: "category"
+            value: "trikona"
+            confidence: 1.0
+        
+        - if_property: "number"
+          property_value: [6, 8, 12]
+          entity_type: "House"
+          infer_property:
+            property: "category"
+            value: "dusthana"
+            confidence: 1.0
+        
+        - if_property: "number"
+          property_value: [3, 6, 10, 11]
+          entity_type: "House"
+          infer_property:
+            property: "category"
+            value: "upachaya"
+            confidence: 1.0
+
+  # --------------------------------------------------------------------------
+  # Entity Recognition Hints
+  # --------------------------------------------------------------------------
+  entity_hints:
+    planet_indicators:
+      - "graha"
+      - "planet"
+      - "lord"
+      - "ruler"
+      - "significator"
+      - "karaka"
+    
+    sign_indicators:
+      - "rashi"
+      - "sign"
+      - "zodiac"
+      - "owned by"
+      - "ruled by"
+    
+    house_indicators:
+      - "bhava"
+      - "house"
+      - "1st house"
+      - "2nd house"
+      - "3rd house"
+      - "4th house"
+      - "5th house"
+      - "6th house"
+      - "7th house"
+      - "8th house"
+      - "9th house"
+      - "10th house"
+      - "11th house"
+      - "12th house"
+      - "lagna"
+      - "ascendant"
+      - "kendra"
+      - "trikona"
+      - "dusthana"
+    
+    nakshatra_indicators:
+      - "nakshatra"
+      - "constellation"
+      - "lunar mansion"
+      - "star"
+      - "pada"
+    
+    yoga_indicators:
+      - "yoga"
+      - "combination"
+      - "when"
+      - "if"
+      - "conjunction"
+      - "forms"
+      - "produces"
+
+# VALIDATION & USAGE
+
+validation:
+  required_entities:
+    Planet: 9
+    Sign: 12
+    House: 12
+    Nakshatra: 27
+    LifeArea: 10  # Minimum 10 parent areas
+  
+  required_relationships:
+    - from_type: "Planet"
+      relationship: "RULES"
+      to_type: "Sign"
+      minimum_count: 1
+    
+    - from_type: "Planet"
+      relationship: "EXALTED_IN"
+      to_type: "Sign"
+      count: 1
+    
+    - from_type: "Planet"
+      relationship: "DEBILITATED_IN"
+      to_type: "Sign"
+      count: 1
+

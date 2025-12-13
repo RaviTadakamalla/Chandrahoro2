@@ -1,0 +1,989 @@
+{
+  "gap_analysis": {
+    "chart_engine": {
+      "status": "IMPLEMENTED",
+      "evidence": [
+        "EphemerisCalculator in backend/app/core/ephemeris.py uses Swiss Ephemeris",
+        "Supports Lahiri ayanamsha and multiple house systems (Whole Sign, Placidus, Koch, Equal)",
+        "Returns planets with longitude, speed, retrograde flag, nakshatra",
+        "Ascendant calculation via calculate_ascendant()",
+        "Houses calculated via HouseSystemCalculator",
+        "Metadata includes ayanamsha_value"
+      ],
+      "gaps": [
+        "No explicit ephemeris_version in output metadata",
+        "Julian day calculation not exposed in API response",
+        "Nakshatra calculation uses floor(longitude/13.3333)+1 but should validate against 27 nakshatras"
+      ],
+      "compliance": "95% - Core functionality complete, minor metadata gaps"
+    },
+    "bala_engine": {
+      "status": "PARTIAL",
+      "evidence": [
+        "Shadbala implemented in backend/app/core/shadbala.py with 6 components",
+        "Ashtakavarga implemented in backend/app/core/ashtakavarga.py",
+        "Planetary relationships (Panchadha Maitri) in backend/app/core/planetary_relationships.py",
+        "Western dignities in backend/app/core/western_dignities.py"
+      ],
+      "implemented_balas": [
+        "Sthana Bala (Positional Strength) - IMPLEMENTED",
+        "Dig Bala (Directional Strength) - IMPLEMENTED",
+        "Kala Bala (Temporal Strength) - IMPLEMENTED",
+        "Chesta Bala (Motional Strength) - IMPLEMENTED",
+        "Naisargika Bala (Natural Strength) - IMPLEMENTED",
+        "Drik Bala (Aspectual Strength) - IMPLEMENTED"
+      ],
+      "gaps": [
+        "No standalone Naisargika Bala API endpoint matching spec formula",
+        "No standalone Drik Bala API endpoint matching spec formula",
+        "No standalone Sthanika Bala API endpoint matching spec formula",
+        "Bala outputs don't match exact spec format: {bala_type, value, normalized, components, explanation}",
+        "Missing deterministic test vectors (spec requires 2 per bala)",
+        "No database table 'balas' for storing calculations"
+      ],
+      "compliance": "60% - Core calculations exist but need refactoring to match spec"
+    },
+    "rule_engine": {
+      "status": "MISSING",
+      "evidence": [
+        "KP Prediction Engine has event-based logic but not generic boolean evaluator",
+        "Jaimini Yogas have conditional detection but hardcoded",
+        "No generic JSON trigger evaluation system"
+      ],
+      "gaps": [
+        "No boolean expression evaluator for nested AND/OR/NOT",
+        "No trigger JSON parser",
+        "No context builder for profile/chart/bala/transit/dasha",
+        "No comparison operators: eq, neq, gte, lte, lt, gt, in, not_in",
+        "No rule evaluation API endpoint"
+      ],
+      "compliance": "0% - Needs complete implementation"
+    },
+    "template_engine": {
+      "status": "PARTIAL",
+      "evidence": [
+        "AI prompt templates in backend/app/models/ai_prompt_models.py (15 modules)",
+        "Template variable substitution in backend/app/services/llm_service.py",
+        "Prompt filling via _fill_prompt_template()"
+      ],
+      "gaps": [
+        "No database table 'templates' with category, language, body, triggers_json, weight, priority",
+        "No trigger evaluation integration",
+        "No scoring/ranking system for templates",
+        "No deduplication logic",
+        "Templates are AI prompts, not deterministic prediction templates"
+      ],
+      "compliance": "30% - Template concept exists but for AI, not rule-based predictions"
+    },
+    "predictions_engine": {
+      "status": "PARTIAL",
+      "evidence": [
+        "KP Prediction Engine generates event predictions (marriage, career, etc.)",
+        "Jaimini interpretation provides dasha-based predictions",
+        "AI-based interpretations via LLM service"
+      ],
+      "gaps": [
+        "No unified prediction generation pipeline as per spec",
+        "No template-based prediction system",
+        "No context assembly (profile + chart + bala + transit + dasha)",
+        "No scoring and ranking mechanism",
+        "Predictions are either KP-specific or AI-generated, not template-driven"
+      ],
+      "compliance": "40% - Prediction capability exists but different architecture"
+    },
+    "report_composer": {
+      "status": "PARTIAL",
+      "evidence": [
+        "PDF generation in backend/app/services/pdf_generator.py",
+        "HTML report structure in PDF generator",
+        "Chart data formatting for reports"
+      ],
+      "gaps": [
+        "No database table 'reports' for storing generated reports",
+        "No category-based prediction filtering (top 5 per category)",
+        "No bala table integration",
+        "No template explanation inclusion",
+        "PDF generator is chart-focused, not prediction-focused"
+      ],
+      "compliance": "35% - Report generation exists but not spec-compliant"
+    },
+    "database_schema": {
+      "status": "PARTIAL",
+      "evidence": [
+        "profiles table exists as 'users' with birth data",
+        "charts table exists as 'birth_charts' with chart_data JSON",
+        "No 'balas' table",
+        "No 'templates' table",
+        "No 'reports' table with prediction structure"
+      ],
+      "gaps": [
+        "Missing 'balas' table: (id, chart_id, bala_type, value, normalized, components_json)",
+        "Missing 'templates' table: (id, category, language, body, triggers_json, weight, priority)",
+        "Missing 'reports' table: (id, profile_id, chart_id, report_type, html, pdf_ref)",
+        "birth_charts.chart_data is JSON blob, not structured with ayanamsha/house_system metadata",
+        "No chart computation timestamp tracking"
+      ],
+      "compliance": "50% - Core tables exist but spec-required tables missing"
+    },
+    "api_endpoints": {
+      "status": "PARTIAL",
+      "evidence": [
+        "POST /api/v1/charts - Create chart (exists)",
+        "GET /api/v1/charts/{id} - Get chart (exists)",
+        "POST /api/v1/chart/calculate - Calculate chart (exists)"
+      ],
+      "gaps": [
+        "Missing: GET /profiles/{id}/chart?date=YYYY-MM-DD",
+        "Missing: GET /profiles/{id}/balas?date=YYYY-MM-DD",
+        "Missing: GET /profiles/{id}/predictions?date=YYYY-MM-DD&categories=career",
+        "Missing: POST /reports",
+        "Missing: GET/POST /templates (admin)",
+        "Existing endpoints don't match spec URL structure"
+      ],
+      "compliance": "40% - Chart endpoints exist but prediction/bala/report endpoints missing"
+    }
+  },
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Implement Rule Engine - Boolean Evaluator",
+      "description": "Create generic boolean expression evaluator supporting AND/OR/NOT with comparison operators (eq, neq, gte, lte, lt, gt, in, not_in). Must handle nested JSON trigger structures.",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 16,
+      "dependencies": [],
+      "files_to_create": [
+        "backend/app/core/rule_engine.py",
+        "backend/app/tests/test_rule_engine.py"
+      ]
+    },
+    {
+      "id": "T002",
+      "title": "Create Database Schema - Balas Table",
+      "description": "Add 'balas' table to store planetary strength calculations with columns: id, chart_id, bala_type, value, normalized, components_json, created_at",
+      "priority": "HIGH",
+      "complexity": "LOW",
+      "estimated_hours": 4,
+      "dependencies": [],
+      "files_to_create": [
+        "backend/alembic/versions/XXXX_add_balas_table.py"
+      ]
+    },
+    {
+      "id": "T003",
+      "title": "Create Database Schema - Templates Table",
+      "description": "Add 'templates' table with columns: id, category, language, body, triggers_json, weight, priority, created_at, updated_at",
+      "priority": "HIGH",
+      "complexity": "LOW",
+      "estimated_hours": 4,
+      "dependencies": [],
+      "files_to_create": [
+        "backend/alembic/versions/XXXX_add_templates_table.py"
+      ]
+    },
+    {
+      "id": "T004",
+      "title": "Create Database Schema - Reports Table",
+      "description": "Add 'reports' table with columns: id, profile_id, chart_id, report_type, html, pdf_ref, created_at",
+      "priority": "MEDIUM",
+      "complexity": "LOW",
+      "estimated_hours": 4,
+      "dependencies": [],
+      "files_to_create": [
+        "backend/alembic/versions/XXXX_add_reports_table.py"
+      ]
+    },
+    {
+      "id": "T005",
+      "title": "Refactor Bala Calculations to Match Spec",
+      "description": "Create standalone functions for Naisargika Bala, Drik Bala, Sthanika Bala matching exact spec formulas. Return format: {bala_type, value, normalized, components, explanation}",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 20,
+      "dependencies": ["T002"],
+      "files_to_modify": [
+        "backend/app/core/shadbala.py"
+      ],
+      "files_to_create": [
+        "backend/app/core/bala_spec.py",
+        "backend/app/tests/test_bala_spec.py"
+      ]
+    },
+    {
+      "id": "T006",
+      "title": "Implement Template Engine with Trigger Evaluation",
+      "description": "Build template matching system with trigger evaluation, placeholder filling, scoring (weight * trigger_strength), and deduplication logic",
+      "priority": "HIGH",
+      "complexity": "HIGH",
+      "estimated_hours": 24,
+      "dependencies": ["T001", "T003"],
+      "files_to_create": [
+        "backend/app/core/template_engine.py",
+        "backend/app/models/template_models.py",
+        "backend/app/services/template_service.py",
+        "backend/app/tests/test_template_engine.py"
+      ]
+    },
+    {
+      "id": "T007",
+      "title": "Implement Context Builder for Predictions",
+      "description": "Create context assembly system that combines profile + chart + bala + transit + dasha data into unified context for rule/template evaluation",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 12,
+      "dependencies": ["T005"],
+      "files_to_create": [
+        "backend/app/core/context_builder.py",
+        "backend/app/tests/test_context_builder.py"
+      ]
+    },
+    {
+      "id": "T008",
+      "title": "Implement Unified Prediction Engine",
+      "description": "Build end-to-end prediction pipeline: context assembly → template matching → trigger evaluation → scoring → ranking → deduplication",
+      "priority": "HIGH",
+      "complexity": "HIGH",
+      "estimated_hours": 28,
+      "dependencies": ["T006", "T007"],
+      "files_to_create": [
+        "backend/app/core/prediction_engine.py",
+        "backend/app/tests/test_prediction_engine.py"
+      ]
+    },
+    {
+      "id": "T009",
+      "title": "Refactor Report Composer to Match Spec",
+      "description": "Update PDF/HTML generator to include: predictions (top 5 per category), bala tables, chart summary, template explanations. Store in reports table.",
+      "priority": "MEDIUM",
+      "complexity": "MEDIUM",
+      "estimated_hours": 16,
+      "dependencies": ["T004", "T008"],
+      "files_to_modify": [
+        "backend/app/services/pdf_generator.py"
+      ],
+      "files_to_create": [
+        "backend/app/models/report_models.py",
+        "backend/app/services/report_service.py"
+      ]
+    },
+    {
+      "id": "T010",
+      "title": "Create API Endpoints - Balas",
+      "description": "Implement GET /profiles/{id}/balas?date=YYYY-MM-DD endpoint returning all 3 bala types (Naisargika, Drik, Sthanika) for all planets",
+      "priority": "HIGH",
+      "complexity": "LOW",
+      "estimated_hours": 8,
+      "dependencies": ["T005"],
+      "files_to_create": [
+        "backend/app/api/v1/balas.py"
+      ],
+      "files_to_modify": [
+        "backend/app/main.py"
+      ]
+    },
+    {
+      "id": "T011",
+      "title": "Create API Endpoints - Predictions",
+      "description": "Implement GET /profiles/{id}/predictions?date=YYYY-MM-DD&categories=career,health endpoint returning scored and ranked predictions",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 12,
+      "dependencies": ["T008"],
+      "files_to_create": [
+        "backend/app/api/v1/predictions.py"
+      ],
+      "files_to_modify": [
+        "backend/app/main.py"
+      ]
+    },
+    {
+      "id": "T012",
+      "title": "Create API Endpoints - Reports",
+      "description": "Implement POST /reports endpoint to generate and store HTML/PDF reports with predictions, balas, chart data",
+      "priority": "MEDIUM",
+      "complexity": "MEDIUM",
+      "estimated_hours": 10,
+      "dependencies": ["T009"],
+      "files_to_create": [
+        "backend/app/api/v1/reports.py"
+      ],
+      "files_to_modify": [
+        "backend/app/main.py"
+      ]
+    },
+    {
+      "id": "T013",
+      "title": "Create API Endpoints - Templates (Admin)",
+      "description": "Implement GET/POST/PUT/DELETE /templates endpoints for admin template management",
+      "priority": "LOW",
+      "complexity": "LOW",
+      "estimated_hours": 8,
+      "dependencies": ["T006"],
+      "files_to_create": [
+        "backend/app/api/v1/templates.py"
+      ],
+      "files_to_modify": [
+        "backend/app/main.py"
+      ]
+    },
+    {
+      "id": "T014",
+      "title": "Add Chart Metadata - Ephemeris Version & Julian Day",
+      "description": "Enhance chart calculation to include ephemeris_version and julian_day in metadata output",
+      "priority": "LOW",
+      "complexity": "LOW",
+      "estimated_hours": 4,
+      "dependencies": [],
+      "files_to_modify": [
+        "backend/app/core/ephemeris.py",
+        "backend/app/services/chart_service.py"
+      ]
+    },
+    {
+      "id": "T015",
+      "title": "Create Unit Tests - Chart Engine",
+      "description": "Write deterministic tests for Julian day conversion, ephemeris calculations, nakshatra computation, ascendant calculation. Validate ±0.01° accuracy.",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 12,
+      "dependencies": [],
+      "files_to_create": [
+        "backend/app/tests/test_chart_engine_spec.py"
+      ]
+    },
+    {
+      "id": "T016",
+      "title": "Create Unit Tests - Bala Engine",
+      "description": "Write 2 test vectors per bala type (Naisargika, Drik, Sthanika) with expected outputs matching spec formulas",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 10,
+      "dependencies": ["T005"],
+      "files_to_modify": [
+        "backend/app/tests/test_bala_spec.py"
+      ]
+    },
+    {
+      "id": "T017",
+      "title": "Create Unit Tests - Rule Engine",
+      "description": "Write tests for AND/OR/NOT logic, all comparison operators, nested expressions, context variable resolution",
+      "priority": "HIGH",
+      "complexity": "MEDIUM",
+      "estimated_hours": 10,
+      "dependencies": ["T001"],
+      "files_to_modify": [
+        "backend/app/tests/test_rule_engine.py"
+      ]
+    },
+    {
+      "id": "T018",
+      "title": "Create Unit Tests - Template Engine",
+      "description": "Write tests for template matching, trigger evaluation, scoring, deduplication, placeholder filling",
+      "priority": "MEDIUM",
+      "complexity": "MEDIUM",
+      "estimated_hours": 10,
+      "dependencies": ["T006"],
+      "files_to_modify": [
+        "backend/app/tests/test_template_engine.py"
+      ]
+    },
+    {
+      "id": "T019",
+      "title": "Create Unit Tests - End-to-End Prediction",
+      "description": "Write integration test: profile → chart → balas → context → templates → predictions → report. Validate complete pipeline.",
+      "priority": "HIGH",
+      "complexity": "HIGH",
+      "estimated_hours": 16,
+      "dependencies": ["T008", "T009"],
+      "files_to_create": [
+        "backend/app/tests/test_e2e_prediction.py"
+      ]
+    },
+    {
+      "id": "T020",
+      "title": "Seed Template Database",
+      "description": "Create initial set of 50+ prediction templates covering categories: career, health, relationships, finance, spiritual. Include triggers, weights, priorities.",
+      "priority": "MEDIUM",
+      "complexity": "MEDIUM",
+      "estimated_hours": 20,
+      "dependencies": ["T003"],
+      "files_to_create": [
+        "backend/app/seeds/templates_seed.py",
+        "backend/app/seeds/templates_data.json"
+      ]
+    }
+  ],
+  "api_schema": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/profiles/{id}/chart",
+        "query_params": {
+          "date": "YYYY-MM-DD (optional, defaults to birth date)"
+        },
+        "response": {
+          "profile_id": "string",
+          "chart_id": "string",
+          "computed_at": "ISO8601 timestamp",
+          "metadata": {
+            "ayanamsha": "Lahiri",
+            "house_system": "Whole Sign",
+            "ephemeris_version": "2.10.03",
+            "julian_day": 2451545.0
+          },
+          "planets": [
+            {
+              "name": "Sun",
+              "longitude": 285.67,
+              "sign": "Capricorn",
+              "degree": 15.67,
+              "nakshatra": 22,
+              "pada": 3,
+              "house": 10,
+              "speed": 1.01,
+              "retrograde": false
+            }
+          ],
+          "houses": [
+            {
+              "number": 1,
+              "sign": "Aries",
+              "cusp_longitude": 0.0
+            }
+          ],
+          "ascendant": {
+            "longitude": 0.0,
+            "sign": "Aries"
+          }
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/profiles/{id}/balas",
+        "query_params": {
+          "date": "YYYY-MM-DD (optional)"
+        },
+        "response": {
+          "profile_id": "string",
+          "chart_id": "string",
+          "computed_at": "ISO8601 timestamp",
+          "balas": [
+            {
+              "planet": "Sun",
+              "naisargika_bala": {
+                "value": 7.85,
+                "normalized": 7.85,
+                "components": {
+                  "base": 5.0,
+                  "deg_factor": 1.52,
+                  "house_factor": 1.1
+                },
+                "explanation": "Sun in own sign (Leo) at 15.67°, in kendra house"
+              },
+              "drik_bala": {
+                "value": 6.2,
+                "normalized": 6.2,
+                "components": {
+                  "jupiter_aspect": 2.0,
+                  "saturn_aspect": -1.5,
+                  "total_weight": 0.5
+                },
+                "explanation": "Benefic aspect from Jupiter, malefic aspect from Saturn"
+              },
+              "sthanika_bala": {
+                "value": 8.5,
+                "normalized": 8.5,
+                "components": {
+                  "house_multiplier": 1.5,
+                  "deg_factor": 0.95
+                },
+                "explanation": "Strong placement in 10th house (kendra)"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/profiles/{id}/predictions",
+        "query_params": {
+          "date": "YYYY-MM-DD (optional)",
+          "categories": "career,health,relationships (optional, comma-separated)"
+        },
+        "response": {
+          "profile_id": "string",
+          "chart_id": "string",
+          "computed_at": "ISO8601 timestamp",
+          "predictions": [
+            {
+              "category": "career",
+              "insight": "Strong leadership opportunities in professional sphere",
+              "score": 8.5,
+              "template_id": "T123",
+              "triggers_matched": [
+                "Sun in 10th house",
+                "Jupiter aspect on 10th lord"
+              ],
+              "period": "Next 6 months",
+              "remedy": "Wear ruby on Sunday morning"
+            }
+          ],
+          "summary_top_tasks": [
+            "Focus on career advancement opportunities",
+            "Strengthen health routines",
+            "Nurture important relationships"
+          ]
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/reports",
+        "request_body": {
+          "profile_id": "string",
+          "chart_id": "string (optional, will compute if missing)",
+          "report_type": "full|summary",
+          "format": "html|pdf|both",
+          "include_predictions": true,
+          "include_balas": true,
+          "include_chart": true
+        },
+        "response": {
+          "report_id": "string",
+          "profile_id": "string",
+          "chart_id": "string",
+          "report_type": "full",
+          "html": "<html>...</html>",
+          "pdf_ref": "s3://bucket/reports/report_123.pdf",
+          "created_at": "ISO8601 timestamp"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/templates",
+        "query_params": {
+          "category": "career|health|relationships|finance|spiritual (optional)",
+          "language": "en|hi|ta (optional)"
+        },
+        "response": {
+          "templates": [
+            {
+              "template_id": "T123",
+              "category": "career",
+              "language": "en",
+              "body": "Strong {planet} in {house} indicates {insight}",
+              "placeholders": ["planet", "house", "insight"],
+              "triggers": {
+                "operator": "AND",
+                "conditions": [
+                  {
+                    "path": "chart.planets.Sun.house",
+                    "op": "eq",
+                    "value": 10
+                  },
+                  {
+                    "path": "bala.Sun.naisargika_bala.normalized",
+                    "op": "gte",
+                    "value": 7.0
+                  }
+                ]
+              },
+              "weight": 1.5,
+              "priority": 1
+            }
+          ]
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/templates",
+        "request_body": {
+          "category": "career",
+          "language": "en",
+          "body": "Template text with {placeholders}",
+          "triggers": {},
+          "weight": 1.0,
+          "priority": 1
+        },
+        "response": {
+          "template_id": "string",
+          "created_at": "ISO8601 timestamp"
+        }
+      }
+    ]
+  },
+  "ddl": "-- Balas Table\nCREATE TABLE balas (\n  id VARCHAR(36) PRIMARY KEY,\n  chart_id VARCHAR(36) NOT NULL,\n  planet VARCHAR(20) NOT NULL,\n  bala_type VARCHAR(50) NOT NULL,\n  value DECIMAL(10, 2) NOT NULL,\n  normalized DECIMAL(10, 2) NOT NULL,\n  components_json JSON NOT NULL,\n  explanation TEXT,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (chart_id) REFERENCES birth_charts(id) ON DELETE CASCADE,\n  INDEX idx_chart_planet (chart_id, planet),\n  INDEX idx_bala_type (bala_type)\n);\n\n-- Templates Table\nCREATE TABLE templates (\n  id VARCHAR(36) PRIMARY KEY,\n  category VARCHAR(50) NOT NULL,\n  language VARCHAR(10) DEFAULT 'en',\n  body TEXT NOT NULL,\n  placeholders JSON,\n  triggers_json JSON NOT NULL,\n  weight DECIMAL(5, 2) DEFAULT 1.0,\n  priority INT DEFAULT 1,\n  active BOOLEAN DEFAULT TRUE,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  INDEX idx_category (category),\n  INDEX idx_language (language),\n  INDEX idx_active (active)\n);\n\n-- Reports Table\nCREATE TABLE reports (\n  id VARCHAR(36) PRIMARY KEY,\n  profile_id VARCHAR(36) NOT NULL,\n  chart_id VARCHAR(36) NOT NULL,\n  report_type VARCHAR(20) NOT NULL,\n  html LONGTEXT,\n  pdf_ref VARCHAR(500),\n  predictions_json JSON,\n  balas_json JSON,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (profile_id) REFERENCES users(id) ON DELETE CASCADE,\n  FOREIGN KEY (chart_id) REFERENCES birth_charts(id) ON DELETE CASCADE,\n  INDEX idx_profile (profile_id),\n  INDEX idx_chart (chart_id),\n  INDEX idx_created (created_at)\n);",
+  "unit_tests": {
+    "chart_tests": [
+      {
+        "test_name": "test_julian_day_conversion",
+        "description": "Verify datetime_to_julian_day() converts 2000-01-01 12:00:00 UTC to JD 2451545.0",
+        "input": {
+          "datetime": "2000-01-01T12:00:00Z"
+        },
+        "expected_output": {
+          "julian_day": 2451545.0
+        }
+      },
+      {
+        "test_name": "test_ephemeris_accuracy",
+        "description": "Verify Sun longitude on 2000-01-01 12:00 UTC is 280.46° ± 0.01° (Lahiri ayanamsha)",
+        "input": {
+          "datetime": "2000-01-01T12:00:00Z",
+          "planet": "Sun",
+          "ayanamsha": "Lahiri"
+        },
+        "expected_output": {
+          "longitude": 280.46,
+          "tolerance": 0.01
+        }
+      },
+      {
+        "test_name": "test_nakshatra_calculation",
+        "description": "Verify Moon at 135.5° is in Nakshatra 11 (Purva Phalguni), Pada 2",
+        "input": {
+          "longitude": 135.5
+        },
+        "expected_output": {
+          "nakshatra": 11,
+          "pada": 2
+        }
+      },
+      {
+        "test_name": "test_ascendant_calculation",
+        "description": "Verify ascendant for 2000-01-01 12:00 UTC at 28.6139°N, 77.2090°E (Delhi) is ~285° (Capricorn)",
+        "input": {
+          "datetime": "2000-01-01T12:00:00Z",
+          "latitude": 28.6139,
+          "longitude": 77.2090
+        },
+        "expected_output": {
+          "ascendant_longitude": 285.0,
+          "tolerance": 1.0
+        }
+      }
+    ],
+    "bala_tests": [
+      {
+        "test_name": "test_naisargika_bala_own_sign",
+        "description": "Sun in Leo (own sign) at 15° in 10th house (kendra) should yield high Naisargika Bala",
+        "input": {
+          "planet": "Sun",
+          "sign": "Leo",
+          "degree": 15.0,
+          "house": 10
+        },
+        "expected_output": {
+          "value": 7.85,
+          "normalized": 7.85,
+          "components": {
+            "base": 5.0,
+            "deg_factor": 1.5,
+            "house_factor": 1.1
+          }
+        }
+      },
+      {
+        "test_name": "test_naisargika_bala_enemy_sign",
+        "description": "Saturn in Cancer (enemy sign) at 5° in 6th house should yield low Naisargika Bala",
+        "input": {
+          "planet": "Saturn",
+          "sign": "Cancer",
+          "degree": 5.0,
+          "house": 6
+        },
+        "expected_output": {
+          "value": 1.2,
+          "normalized": 1.2,
+          "components": {
+            "base": 1.0,
+            "deg_factor": 1.17,
+            "house_factor": 1.0
+          }
+        }
+      },
+      {
+        "test_name": "test_drik_bala_benefic_aspect",
+        "description": "Sun aspected by Jupiter (full aspect, orb 2°) should yield positive Drik Bala",
+        "input": {
+          "planet": "Sun",
+          "longitude": 100.0,
+          "aspects": [
+            {
+              "planet": "Jupiter",
+              "longitude": 280.0,
+              "orb": 2.0
+            }
+          ]
+        },
+        "expected_output": {
+          "value": 6.5,
+          "normalized": 6.5,
+          "components": {
+            "jupiter_aspect": 2.0,
+            "attenuation": 0.9
+          }
+        }
+      },
+      {
+        "test_name": "test_drik_bala_malefic_aspect",
+        "description": "Moon aspected by Saturn (full aspect, orb 1°) should yield negative Drik Bala",
+        "input": {
+          "planet": "Moon",
+          "longitude": 50.0,
+          "aspects": [
+            {
+              "planet": "Saturn",
+              "longitude": 230.0,
+              "orb": 1.0
+            }
+          ]
+        },
+        "expected_output": {
+          "value": 3.5,
+          "normalized": 3.5,
+          "components": {
+            "saturn_aspect": -1.5,
+            "attenuation": 0.95
+          }
+        }
+      },
+      {
+        "test_name": "test_sthanika_bala_kendra",
+        "description": "Planet in 10th house (kendra) at exact cusp should yield high Sthanika Bala",
+        "input": {
+          "planet": "Mars",
+          "house": 10,
+          "degree_from_cusp": 0.0
+        },
+        "expected_output": {
+          "value": 9.0,
+          "normalized": 9.0,
+          "components": {
+            "house_multiplier": 1.5,
+            "deg_factor": 1.0
+          }
+        }
+      },
+      {
+        "test_name": "test_sthanika_bala_dusthana",
+        "description": "Planet in 8th house (dusthana) at 10° from cusp should yield low Sthanika Bala",
+        "input": {
+          "planet": "Venus",
+          "house": 8,
+          "degree_from_cusp": 10.0
+        },
+        "expected_output": {
+          "value": 2.5,
+          "normalized": 2.5,
+          "components": {
+            "house_multiplier": 0.5,
+            "deg_factor": 0.67
+          }
+        }
+      }
+    ],
+    "rule_tests": [
+      {
+        "test_name": "test_simple_and_condition",
+        "description": "Evaluate AND condition: Sun in 10th house AND Sun strength >= 7",
+        "input": {
+          "trigger": {
+            "operator": "AND",
+            "conditions": [
+              {
+                "path": "chart.planets.Sun.house",
+                "op": "eq",
+                "value": 10
+              },
+              {
+                "path": "bala.Sun.naisargika_bala.normalized",
+                "op": "gte",
+                "value": 7.0
+              }
+            ]
+          },
+          "context": {
+            "chart": {
+              "planets": {
+                "Sun": {
+                  "house": 10
+                }
+              }
+            },
+            "bala": {
+              "Sun": {
+                "naisargika_bala": {
+                  "normalized": 7.85
+                }
+              }
+            }
+          }
+        },
+        "expected_output": {
+          "result": true,
+          "strength": 1.0
+        }
+      },
+      {
+        "test_name": "test_nested_or_and_condition",
+        "description": "Evaluate (Sun in 10th OR Moon in 1st) AND Jupiter strength >= 6",
+        "input": {
+          "trigger": {
+            "operator": "AND",
+            "conditions": [
+              {
+                "operator": "OR",
+                "conditions": [
+                  {
+                    "path": "chart.planets.Sun.house",
+                    "op": "eq",
+                    "value": 10
+                  },
+                  {
+                    "path": "chart.planets.Moon.house",
+                    "op": "eq",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "path": "bala.Jupiter.naisargika_bala.normalized",
+                "op": "gte",
+                "value": 6.0
+              }
+            ]
+          },
+          "context": {
+            "chart": {
+              "planets": {
+                "Sun": {
+                  "house": 5
+                },
+                "Moon": {
+                  "house": 1
+                }
+              }
+            },
+            "bala": {
+              "Jupiter": {
+                "naisargika_bala": {
+                  "normalized": 6.5
+                }
+              }
+            }
+          }
+        },
+        "expected_output": {
+          "result": true,
+          "strength": 1.0
+        }
+      },
+      {
+        "test_name": "test_not_condition",
+        "description": "Evaluate NOT (Saturn in 7th house)",
+        "input": {
+          "trigger": {
+            "operator": "NOT",
+            "condition": {
+              "path": "chart.planets.Saturn.house",
+              "op": "eq",
+              "value": 7
+            }
+          },
+          "context": {
+            "chart": {
+              "planets": {
+                "Saturn": {
+                  "house": 10
+                }
+              }
+            }
+          }
+        },
+        "expected_output": {
+          "result": true,
+          "strength": 1.0
+        }
+      },
+      {
+        "test_name": "test_in_operator",
+        "description": "Evaluate Sun.house IN [1, 4, 7, 10] (kendras)",
+        "input": {
+          "trigger": {
+            "path": "chart.planets.Sun.house",
+            "op": "in",
+            "value": [1, 4, 7, 10]
+          },
+          "context": {
+            "chart": {
+              "planets": {
+                "Sun": {
+                  "house": 10
+                }
+              }
+            }
+          }
+        },
+        "expected_output": {
+          "result": true,
+          "strength": 1.0
+        }
+      }
+    ]
+  },
+  "risks": [
+    {
+      "risk": "Formula Accuracy",
+      "description": "Spec formulas for Naisargika/Drik/Sthanika Bala may not match classical texts. Need validation against reference implementations.",
+      "mitigation": "Create test vectors from AstroGyan/JHora and validate outputs. Document any deviations.",
+      "severity": "HIGH"
+    },
+    {
+      "risk": "Template Quality",
+      "description": "Prediction quality depends on template database. Poor templates = poor predictions.",
+      "mitigation": "Start with 50+ curated templates. Implement feedback loop for template refinement. Add admin review process.",
+      "severity": "HIGH"
+    },
+    {
+      "risk": "Performance",
+      "description": "End-to-end prediction pipeline (context + rule evaluation + template matching) may be slow for large template databases.",
+      "mitigation": "Implement caching for chart/bala calculations. Index templates by category. Use async processing for report generation.",
+      "severity": "MEDIUM"
+    },
+    {
+      "risk": "Rule Engine Complexity",
+      "description": "Nested boolean expressions with deep context paths may be error-prone and hard to debug.",
+      "mitigation": "Implement comprehensive logging. Add trigger validation on template creation. Provide trigger testing UI.",
+      "severity": "MEDIUM"
+    },
+    {
+      "risk": "Database Migration",
+      "description": "Adding 3 new tables (balas, templates, reports) requires careful migration planning for production data.",
+      "mitigation": "Use Alembic migrations. Test on staging environment. Implement rollback procedures.",
+      "severity": "LOW"
+    },
+    {
+      "risk": "API Compatibility",
+      "description": "New API endpoints may conflict with existing chart/prediction endpoints. Frontend may need updates.",
+      "mitigation": "Version APIs (/api/v2/). Maintain backward compatibility. Document breaking changes.",
+      "severity": "MEDIUM"
+    },
+    {
+      "risk": "Deduplication Logic",
+      "description": "Template deduplication may incorrectly filter valid predictions or allow duplicates.",
+      "mitigation": "Use similarity threshold (e.g., 80% text overlap). Allow manual override. Log deduplication decisions.",
+      "severity": "LOW"
+    }
+  ],
+  "summary_top_tasks": [
+    "T001: Implement Rule Engine - Boolean Evaluator (16h, HIGH priority) - Foundation for template triggers",
+    "T002-T004: Create Database Schema (12h total, HIGH priority) - Required for all downstream features",
+    "T005: Refactor Bala Calculations to Match Spec (20h, HIGH priority) - Core calculation accuracy",
+    "T006: Implement Template Engine (24h, HIGH priority) - Core prediction generation system",
+    "T008: Implement Unified Prediction Engine (28h, HIGH priority) - End-to-end pipeline integration",
+    "T010-T011: Create API Endpoints for Balas & Predictions (20h, HIGH priority) - User-facing functionality",
+    "T015-T017: Create Unit Tests for Chart/Bala/Rule Engines (32h, HIGH priority) - Quality assurance",
+    "T020: Seed Template Database (20h, MEDIUM priority) - Initial content for predictions"
+  ]
+}
+
