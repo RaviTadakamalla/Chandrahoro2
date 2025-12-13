@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Calendar, Clock, User, MapPin, Settings } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +10,9 @@ import LocationSearch from './LocationSearch';
 import PreferencesPanel from './PreferencesPanel';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { ErrorAlert } from '@/components/ui/error-alert';
-import { BirthDetails, ChartPreferences, apiClient } from '@/lib/api';
+import { BirthDetails, ChartPreferences } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { getRecentUsers, saveRecentUser, removeRecentUser, RecentUser } from '@/lib/recentUsers';
 
 interface LocationResult {
   name: string;
@@ -36,8 +37,8 @@ export default function BirthDetailsForm({
   initialData
 }: BirthDetailsFormProps) {
   const { user, isAuthenticated } = useAuth();
-  const [loadingSavedData, setLoadingSavedData] = useState(false);
-  const [savedCharts, setSavedCharts] = useState<any[]>([]);
+  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const [formData, setFormData] = useState<BirthDetails>({
     name: initialData?.name || '',
@@ -59,39 +60,28 @@ export default function BirthDetailsForm({
     methodology: 'parashara' // Default to Parashara methodology
   });
 
-  // Fetch saved birth details for authenticated users
+  // Load recent users from localStorage
   useEffect(() => {
-    const fetchSavedCharts = async () => {
-      if (isAuthenticated && !initialData) {
-        try {
-          setLoadingSavedData(true);
-          const charts = await apiClient.listCharts(0, 5); // Get last 5 charts
-          setSavedCharts(charts);
+    if (!initialData) {
+      const users = getRecentUsers();
+      setRecentUsers(users);
 
-          // Auto-populate with the most recent chart if available
-          if (charts.length > 0) {
-            const mostRecent = charts[0];
-            setFormData({
-              name: mostRecent.name || '',
-              date: mostRecent.birth_date || '',
-              time: mostRecent.birth_time || '',
-              time_unknown: !mostRecent.birth_time,
-              latitude: mostRecent.birth_latitude || 0,
-              longitude: mostRecent.birth_longitude || 0,
-              timezone: mostRecent.birth_timezone || 'UTC',
-              location_name: mostRecent.birth_location || ''
-            });
-          }
-        } catch (error) {
-          console.error('Failed to fetch saved charts:', error);
-        } finally {
-          setLoadingSavedData(false);
-        }
+      // Auto-populate with the most recent user if available
+      if (users.length > 0) {
+        const mostRecent = users[0];
+        setFormData({
+          name: mostRecent.name || '',
+          date: mostRecent.date || '',
+          time: mostRecent.time || '',
+          time_unknown: mostRecent.time_unknown,
+          latitude: mostRecent.latitude || 0,
+          longitude: mostRecent.longitude || 0,
+          timezone: mostRecent.timezone || 'UTC',
+          location_name: mostRecent.location_name || ''
+        });
       }
-    };
-
-    fetchSavedCharts();
-  }, [isAuthenticated, initialData]);
+    }
+  }, [initialData]);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('basic');
@@ -169,30 +159,25 @@ export default function BirthDetailsForm({
     e.preventDefault();
 
     if (validateForm()) {
-      // Save birth details for authenticated users
-      if (isAuthenticated) {
-        try {
-          await apiClient.createChart({
-            name: formData.name || 'My Chart',
-            birth_date: formData.date,
-            birth_time: formData.time_unknown ? undefined : formData.time,
-            birth_latitude: formData.latitude,
-            birth_longitude: formData.longitude,
-            birth_timezone: formData.timezone,
-            birth_location: formData.location_name,
-            ayanamsha: preferences.ayanamsha,
-            house_system: preferences.house_system,
-            chart_style: preferences.chart_style,
-          });
-        } catch (error) {
-          console.error('Failed to save birth details:', error);
-          // Continue with chart generation even if save fails
-        }
+      // Save to recent users if "Remember Me" is checked
+      if (rememberMe && formData.name) {
+        saveRecentUser({
+          name: formData.name,
+          date: formData.date,
+          time: formData.time,
+          time_unknown: formData.time_unknown,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          timezone: formData.timezone,
+          location_name: formData.location_name
+        });
+        // Update the local state
+        setRecentUsers(getRecentUsers());
       }
 
       onSubmit(formData, preferences);
     }
-  }, [formData, preferences, validateForm, onSubmit, isAuthenticated]);
+  }, [formData, preferences, validateForm, onSubmit, rememberMe]);
 
   const handleTimeUnknownChange = useCallback((checked: boolean) => {
     handleInputChange('time_unknown', checked);
@@ -246,49 +231,54 @@ export default function BirthDetailsForm({
           </div>
         )}
 
-        {/* Saved Charts Section for Authenticated Users */}
-        {isAuthenticated && savedCharts.length > 0 && (
+        {/* Recent Users Section */}
+        {recentUsers.length > 0 && (
           <div className="mb-6 p-4 bg-saffron-50 border border-saffron-200 rounded-lg dark:bg-saffron-900/20 dark:border-saffron-800">
             <h4 className="text-sm font-medium text-saffron-800 dark:text-saffron-400 mb-3">
-              Your Saved Birth Details
+              Recent Users
             </h4>
             <div className="space-y-2">
-              {savedCharts.slice(0, 3).map((chart) => (
-                <button
-                  key={chart.id}
-                  type="button"
-                  onClick={() => {
-                    setFormData({
-                      name: chart.name || '',
-                      date: chart.birth_date || '',
-                      time: chart.birth_time || '',
-                      time_unknown: !chart.birth_time,
-                      latitude: chart.birth_latitude || 0,
-                      longitude: chart.birth_longitude || 0,
-                      timezone: chart.birth_timezone || 'UTC',
-                      location_name: chart.birth_location || ''
-                    });
-                  }}
-                  className="w-full text-left p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              {recentUsers.slice(0, 4).map((recentUser) => (
+                <div
+                  key={recentUser.id}
+                  className="flex items-center gap-2"
                 >
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {chart.name || 'Unnamed Chart'}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {chart.birth_date} • {chart.birth_location}
-                  </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        name: recentUser.name || '',
+                        date: recentUser.date || '',
+                        time: recentUser.time || '',
+                        time_unknown: recentUser.time_unknown,
+                        latitude: recentUser.latitude || 0,
+                        longitude: recentUser.longitude || 0,
+                        timezone: recentUser.timezone || 'UTC',
+                        location_name: recentUser.location_name || ''
+                      });
+                    }}
+                    className="flex-1 text-left p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {recentUser.name || 'Unnamed'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {recentUser.date} • {recentUser.location_name}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeRecentUser(recentUser.id);
+                      setRecentUsers(getRecentUsers());
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                    title="Remove from recent users"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Loading indicator for saved data */}
-        {loadingSavedData && (
-          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
-            <div className="flex items-center gap-2">
-              <LoadingSpinner size="sm" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Loading your saved birth details...</span>
             </div>
           </div>
         )}
@@ -407,29 +397,41 @@ export default function BirthDetailsForm({
             </div>
           </Tabs>
 
-          <div className="flex justify-between items-center pt-3 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={fillTestData}
-              className="text-sm"
-            >
-              Fill Test Data
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="min-w-[120px]"
-            >
-              {isLoading ? (
-                <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  Generating...
-                </>
-              ) : (
-                'Generate Chart'
-              )}
-            </Button>
+          <div className="pt-3 border-t space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+              />
+              <Label htmlFor="remember-me" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                Remember this user for quick access
+              </Label>
+            </div>
+            <div className="flex justify-between items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fillTestData}
+                className="text-sm"
+              >
+                Fill Test Data
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="min-w-[120px]"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Chart'
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>
