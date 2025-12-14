@@ -135,12 +135,12 @@ DEFAULT_PROMPTS = {
     AiModuleType.CHART_INTERPRETATION: {
         "name": "AI Chart Interpretation",
         "description": "Comprehensive birth chart interpretation covering personality, life path, and key themes",
-        "prompt": """You are an expert Vedic astrologer. Generate a beautifully formatted HTML horoscope report that can be directly displayed in a browser and downloaded.
+        "prompt": """You are an expert Vedic astrologer analyzing a birth chart. The native's complete birth details and planetary positions are provided below.
 
-Chart Data:
+Birth Details and Chart Data:
 {chart_data}
 
-Generate a complete, self-contained HTML document with the following specifications:
+Generate a complete, self-contained HTML horoscope report with the following specifications:
 
 1. **HTML Structure**: Return ONLY the HTML content (no markdown, no code blocks, no explanations)
 2. **Styling**: Include embedded CSS for beautiful formatting
@@ -187,26 +187,38 @@ Generate a complete, self-contained HTML document with the following specificati
 </body>
 </html>
 
-IMPORTANT INSTRUCTIONS:
-1. Return ONLY the complete HTML document (no markdown code blocks, no explanations)
-2. Fill in ALL sections with actual chart data from {chart_data}
-3. Include these sections:
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+
+1. **Direct HTML Output**: Return ONLY the complete HTML document. No markdown code blocks (```html), no explanations, no preamble. Start directly with <!DOCTYPE html>
+
+2. **Use Provided Data**: The chart_data above contains ALL the native's information including:
+   - Name, Date of Birth, Time, Location (already provided - DO NOT ask for it)
+   - Ascendant sign and degree
+   - All planetary positions with signs and degrees
+   - Houses, Nakshatras, and other astrological details
+
+3. **Required Sections in HTML Report**:
    - Header with "Vedic Astrology Report" title
-   - Birth Information table (name, DOB, time, location, ascendant, moon sign, nakshatra)
-   - Planetary Positions table (planet, sign, degree, house, nakshatra, dignity, navamsa, karaka, retrograde)
-   - Vimsottari Dasha timeline with current period highlighted
-   - Yoga Analysis with detailed cards for each yoga identified
-   - House-by-House Analysis (all 12 houses)
-   - Life Areas (Personality, Career, Wealth, Marriage, Health, Current Period, Favorable Times)
-   - Remedial Measures (mantras, gemstones, practices)
-   - Summary and Key Assessments
-4. Calculate and display Jaimini Karakas (AK, AmK, BK, MK, PK, GK, DK)
-5. Identify major yogas (Gajakesari, Budha-Aditya, Dhana, Raja, etc.)
-6. Use actual planetary degrees, positions, and aspects from the chart data
-7. Be specific, compassionate, and constructive
-8. Include Sanskrit terms with English translations
-9. Make it visually appealing and professional
-10. Ensure the HTML is self-contained and ready to display/download""",
+   - Birth Information table showing: Name, DOB, Birth Time, Location, Ascendant, Moon Sign, Birth Nakshatra
+   - Planetary Positions table with: Planet, Sign, Degree, House, Nakshatra, Dignity, Navamsa Position
+   - Vimsottari Dasha Timeline (highlight current period)
+   - Identified Yogas (Gajakesari, Budha-Aditya, Dhana, Raja, etc.) as cards
+   - House-by-House Analysis (all 12 houses with significations)
+   - Life Path Analysis: Personality traits, Career indications, Financial prospects, Relationship patterns, Health tendencies
+   - Current Dasha Period Analysis
+   - Favorable Time Periods
+   - Remedial Measures: Mantras, Gemstones, Charitable activities
+   - Summary and Key Points
+
+4. **Important**:
+   - Extract name, DOB, time, location from the chart_data provided
+   - Calculate and show Jaimini Karakas (AK, AmK, BK, MK, PK, GK, DK) from planetary degrees
+   - Use actual planetary positions and aspects from the data
+   - Be specific, compassionate, and constructive
+   - Include Sanskrit terms with English translations in parentheses
+   - Make it professional and visually appealing
+
+5. **Output Format**: Complete self-contained HTML ready for browser display and download""",
         "output_format": "html",
         "variables": ["chart_data", "birth_info", "planets", "houses", "aspects", "dashas", "yogas"]
     },
