@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_URL } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
-import MainNav from '@/components/MainNav';
+import { MainNav } from '@/components/MainNav';
 
 interface AiReport {
   id: string;
