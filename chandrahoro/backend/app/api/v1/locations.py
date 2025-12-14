@@ -7,6 +7,7 @@ import os
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services.location_service import get_location_service, LocationResult
+from app.core.exceptions import ValidationError, ExternalAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +66,11 @@ async def search_locations(
         }
 
     except Exception as e:
-        logger.error(f"Error searching locations: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error searching locations: {str(e)}"
+        logger.error(f"Error searching locations: {e}", exc_info=True)
+        raise ExternalAPIError(
+            "Failed to search for locations. Please try again.",
+            service="Location Service",
+            details={"error": str(e), "query": q}
         )
 
 
@@ -103,10 +105,11 @@ async def reverse_geocode(
         }
 
     except Exception as e:
-        logger.error(f"Error in reverse geocoding: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error in reverse geocoding: {str(e)}"
+        logger.error(f"Error in reverse geocoding: {e}", exc_info=True)
+        raise ExternalAPIError(
+            "Failed to reverse geocode coordinates. Please try again.",
+            service="Geocoding Service",
+            details={"error": str(e), "latitude": lat, "longitude": lon}
         )
 
 

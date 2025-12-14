@@ -7,6 +7,7 @@ import logging
 
 from app.core.transits import TransitCalculator
 from app.models.chart import ChartData
+from app.core.exceptions import ValidationError, NotFoundError, DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ async def get_current_transits(
             try:
                 calculation_date = datetime.strptime(date, "%Y-%m-%d")
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+                raise ValidationError("Invalid date format. Please use YYYY-MM-DD format.")
 
         # Initialize transit calculator
         transit_calc = TransitCalculator()
@@ -73,14 +74,18 @@ async def get_current_transits(
 
         # TODO: In a real application, you would fetch the natal chart from database
         # For now, return an error asking for natal chart data
-        raise HTTPException(
-            status_code=501,
-            detail="Natal chart comparison not implemented. Please provide natal chart data directly."
+        raise NotFoundError(
+            "Natal chart not found. Please provide natal chart data directly using the /transits/compare endpoint."
         )
 
+    except (ValidationError, NotFoundError):
+        raise
     except Exception as e:
-        logger.error(f"Error calculating transits: {e}")
-        raise HTTPException(status_code=500, detail=f"Error calculating transits: {str(e)}")
+        logger.error(f"Error calculating transits: {e}", exc_info=True)
+        raise DatabaseError(
+            "Failed to calculate transits. Please try again.",
+            details={"error": str(e)}
+        )
 
 
 @router.post("/transits/compare")
@@ -105,7 +110,7 @@ async def compare_transits_to_natal(
             try:
                 calculation_date = datetime.strptime(date, "%Y-%m-%d")
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+                raise ValidationError("Invalid date format. Please use YYYY-MM-DD format.")
 
         # Initialize transit calculator
         transit_calc = TransitCalculator()
@@ -124,9 +129,14 @@ async def compare_transits_to_natal(
             "message": "Transit analysis completed successfully"
         }
 
+    except ValidationError:
+        raise
     except Exception as e:
-        logger.error(f"Error in transit comparison: {e}")
-        raise HTTPException(status_code=500, detail=f"Error in transit comparison: {str(e)}")
+        logger.error(f"Error in transit comparison: {e}", exc_info=True)
+        raise DatabaseError(
+            "Failed to compare transits. Please try again.",
+            details={"error": str(e)}
+        )
 
 
 @router.get("/transits/sample")
@@ -223,5 +233,8 @@ async def get_sample_transits():
         }
 
     except Exception as e:
-        logger.error(f"Error generating sample transits: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generating sample transits: {str(e)}")
+        logger.error(f"Error generating sample transits: {e}", exc_info=True)
+        raise DatabaseError(
+            "Failed to generate sample transits. Please try again.",
+            details={"error": str(e)}
+        )

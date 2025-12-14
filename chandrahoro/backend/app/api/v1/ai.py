@@ -15,6 +15,10 @@ from app.services.llm_service import LlmService
 from app.services.ai_report_service import AiReportService
 from app.core.database import get_db
 from app.core.rbac import get_current_user
+from app.core.exceptions import (
+    ValidationError, ConfigurationError, ExternalAPIError,
+    DatabaseError, NotFoundError
+)
 from app.models import User
 from app.models.ai_report_models import ReportType, ReportStatus
 from app.schemas.ai_report_schemas import AiReportCreate
@@ -112,15 +116,13 @@ async def interpret_chart(
         # Get user's LLM configuration
         llm_config = await llm_service.get_config(db, current_user.id)
         if not llm_config:
-            raise HTTPException(
-                status_code=400,
-                detail="No LLM configuration found. Please configure your AI settings first."
+            raise ConfigurationError(
+                "No LLM configuration found. Please configure your AI settings first."
             )
 
         if not llm_config.is_active:
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration is inactive. Please check your AI settings."
+            raise ConfigurationError(
+                "LLM configuration is inactive. Please check your AI settings."
             )
 
         # Generate interpretation using user's LLM configuration
@@ -134,13 +136,12 @@ async def interpret_chart(
 
             # Check for encryption key errors
             if error_code == 'API_KEY_ENCRYPTION_ERROR' or 'InvalidToken' in error_code or 'decrypt' in error_code.lower():
-                raise HTTPException(
-                    status_code=400,
-                    detail=error_msg if error_code == 'API_KEY_ENCRYPTION_ERROR' else "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+                raise ConfigurationError(
+                    error_msg if error_code == 'API_KEY_ENCRYPTION_ERROR' else "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
                 )
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to generate interpretation: {error_msg}"
+            raise ExternalAPIError(
+                f"Failed to generate interpretation: {error_msg}",
+                service="LLM Service"
             )
 
         # Auto-save report to database
@@ -207,11 +208,15 @@ async def interpret_chart(
         # Check for encryption/decryption errors
         error_str = str(e)
         if 'InvalidToken' in error_str or 'decrypt' in error_str.lower() or 'Signature did not match' in error_str:
-            raise HTTPException(
-                status_code=400,
-                detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+            raise ConfigurationError(
+                "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
             )
-        raise HTTPException(status_code=500, detail=f"Error: {error_str}")
+        logger.error(f"Unexpected error in AI endpoint: {error_str}", exc_info=True)
+        raise ExternalAPIError(
+            "An unexpected error occurred while processing your request",
+            service="AI Service",
+            details={"error": error_str}
+        )
 
 
 @router.post("/chat")
@@ -237,15 +242,13 @@ async def chat_about_chart(
         # Get user's LLM configuration
         llm_config = await llm_service.get_config(db, current_user.id)
         if not llm_config:
-            raise HTTPException(
-                status_code=400,
-                detail="No LLM configuration found. Please configure your AI settings first."
+            raise ConfigurationError(
+                "No LLM configuration found. Please configure your AI settings first."
             )
 
         if not llm_config.is_active:
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration is inactive. Please check your AI settings."
+            raise ConfigurationError(
+                "LLM configuration is inactive. Please check your AI settings."
             )
         
         # Convert ChatMessage objects to dicts
@@ -263,13 +266,12 @@ async def chat_about_chart(
             error_msg = result.get('error', 'Unknown error')
             # Check for encryption key errors
             if 'InvalidToken' in error_msg or 'decrypt' in error_msg.lower():
-                raise HTTPException(
-                    status_code=400,
-                    detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+                raise ConfigurationError(
+                    "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
                 )
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to generate response: {error_msg}"
+            raise ExternalAPIError(
+                f"Failed to generate response: {error_msg}",
+                service="LLM Service"
             )
 
         return {
@@ -287,11 +289,15 @@ async def chat_about_chart(
         # Check for encryption/decryption errors
         error_str = str(e)
         if 'InvalidToken' in error_str or 'decrypt' in error_str.lower() or 'Signature did not match' in error_str:
-            raise HTTPException(
-                status_code=400,
-                detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+            raise ConfigurationError(
+                "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
             )
-        raise HTTPException(status_code=500, detail=f"Error: {error_str}")
+        logger.error(f"Unexpected error in AI endpoint: {error_str}", exc_info=True)
+        raise ExternalAPIError(
+            "An unexpected error occurred while processing your request",
+            service="AI Service",
+            details={"error": error_str}
+        )
 
 
 @router.post("/feedback")
@@ -326,8 +332,11 @@ async def submit_feedback(request: FeedbackRequest):
         }
     
     except Exception as e:
-        logger.error(f"Error submitting feedback: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        logger.error(f"Error submitting feedback: {e}", exc_info=True)
+        raise DatabaseError(
+            "Failed to submit feedback. Please try again.",
+            details={"error": str(e)}
+        )
 
 
 @router.get("/usage")
@@ -361,8 +370,11 @@ async def get_usage_stats(user_id: Optional[str] = Query(None)):
         }
     
     except Exception as e:
-        logger.error(f"Error retrieving usage stats: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        logger.error(f"Error retrieving usage stats: {e}", exc_info=True)
+        raise DatabaseError(
+            "Failed to retrieve usage statistics. Please try again.",
+            details={"error": str(e)}
+        )
 
 
 @router.post("/regenerate")
@@ -381,18 +393,17 @@ async def regenerate_interpretation(request: ChartInterpretationRequest):
         
         # Check if AI is enabled
         if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-            raise HTTPException(
-                status_code=503,
-                detail="AI features are not configured"
+            raise ConfigurationError(
+                "AI features are not configured. Please contact the administrator."
             )
         
         # Generate new interpretation
         result = await ai_service.interpret_chart(request.chart_data)
         
         if not result.get("success"):
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to regenerate interpretation: {result.get('error')}"
+            raise ExternalAPIError(
+                f"Failed to regenerate interpretation: {result.get('error')}",
+                service="AI Service"
             )
         
         return {
@@ -406,11 +417,15 @@ async def regenerate_interpretation(request: ChartInterpretationRequest):
             "message": "Chart interpretation regenerated successfully"
         }
     
-    except HTTPException:
+    except (ConfigurationError, ExternalAPIError):
         raise
     except Exception as e:
-        logger.error(f"Error regenerating interpretation: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        logger.error(f"Error regenerating interpretation: {e}", exc_info=True)
+        raise ExternalAPIError(
+            "An unexpected error occurred while regenerating interpretation",
+            service="AI Service",
+            details={"error": str(e)}
+        )
 
 
 @router.post("/compatibility")
@@ -436,15 +451,13 @@ async def analyze_compatibility(
         # Get user's LLM configuration
         llm_config = await llm_service.get_config(db, current_user.id)
         if not llm_config:
-            raise HTTPException(
-                status_code=400,
-                detail="No LLM configuration found. Please configure your AI settings first."
+            raise ConfigurationError(
+                "No LLM configuration found. Please configure your AI settings first."
             )
 
         if not llm_config.is_active:
-            raise HTTPException(
-                status_code=400,
-                detail="LLM configuration is inactive. Please check your AI settings."
+            raise ConfigurationError(
+                "LLM configuration is inactive. Please check your AI settings."
             )
 
         # Generate partner's chart data (this would typically involve calling the chart calculation service)
@@ -500,11 +513,15 @@ async def analyze_compatibility(
         # Check for encryption/decryption errors
         error_str = str(e)
         if 'InvalidToken' in error_str or 'decrypt' in error_str.lower() or 'Signature did not match' in error_str:
-            raise HTTPException(
-                status_code=400,
-                detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+            raise ConfigurationError(
+                "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
             )
-        raise HTTPException(status_code=500, detail=f"Error: {error_str}")
+        logger.error(f"Unexpected error in AI endpoint: {error_str}", exc_info=True)
+        raise ExternalAPIError(
+            "An unexpected error occurred while processing your request",
+            service="AI Service",
+            details={"error": error_str}
+        )
 
 
 @router.post("/match-horoscope")
@@ -682,11 +699,15 @@ async def analyze_match_horoscope(
         # Check for encryption/decryption errors
         error_str = str(e)
         if 'InvalidToken' in error_str or 'decrypt' in error_str.lower() or 'Signature did not match' in error_str:
-            raise HTTPException(
-                status_code=400,
-                detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+            raise ConfigurationError(
+                "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
             )
-        raise HTTPException(status_code=500, detail=f"Error: {error_str}")
+        logger.error(f"Unexpected error in AI endpoint: {error_str}", exc_info=True)
+        raise ExternalAPIError(
+            "An unexpected error occurred while processing your request",
+            service="AI Service",
+            details={"error": error_str}
+        )
 
 
 @router.post("/match-horoscope/export")
@@ -717,9 +738,9 @@ async def export_match_horoscope_pdf(
         )
 
         if not pdf_result.get("success"):
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to generate PDF: {pdf_result.get('error')}"
+            raise ExternalAPIError(
+                f"Failed to generate PDF: {pdf_result.get('error')}",
+                service="PDF Service"
             )
 
         # Return PDF as response
@@ -732,11 +753,15 @@ async def export_match_horoscope_pdf(
             }
         )
 
-    except HTTPException:
+    except ExternalAPIError:
         raise
     except Exception as e:
         logger.error(f"Error exporting match horoscope PDF: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise ExternalAPIError(
+            "An unexpected error occurred while exporting PDF",
+            service="PDF Service",
+            details={"error": str(e)}
+        )
 
 
 @router.get("/test")
