@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileText, Loader2, AlertCircle, RefreshCw, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,7 @@ import { API_URL } from '@/lib/constants';
 import type { AiModuleMeta, AiModuleProps } from '@/lib/ai/types';
 import { HoroscopeReport, type HoroscopeReportData } from '@/components/horoscope/HoroscopeReport';
 import { useAiReportCache } from '@/hooks/useAiReportCache';
+import { useRouter } from 'next/router';
 
 // Module metadata
 export const meta: AiModuleMeta = {
@@ -36,6 +37,7 @@ interface InterpretationResponse {
     input: number;
     output: number;
   };
+  report_id?: string; // ID of the auto-saved report
 }
 
 interface CachedReportData {
@@ -46,11 +48,13 @@ interface CachedReportData {
 
 // Main component
 export default function ChartInterpretationModule({ chartData, user, onClose }: AiModuleProps) {
+  const router = useRouter();
   const [interpretation, setInterpretation] = useState<string>('');
   const [reportData, setReportData] = useState<HoroscopeReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [outputFormat, setOutputFormat] = useState<'markdown' | 'json'>('markdown');
+  const [reportId, setReportId] = useState<string | null>(null);
 
   // Use the AI report cache hook
   const { cachedData, isCached, saveToCache } = useAiReportCache<CachedReportData>({
@@ -117,6 +121,12 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
       }
 
       const result: InterpretationResponse = await response.json();
+
+      // Save report ID if provided
+      if (result.report_id) {
+        setReportId(result.report_id);
+        console.log('Report auto-saved with ID:', result.report_id);
+      }
 
       if (result.success && result.content) {
         console.log('=== AI Chart Interpretation Debug ===');
@@ -194,6 +204,44 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
     }
   };
 
+  // Handle download report
+  const handleDownload = async () => {
+    if (!reportId) {
+      alert('No report available to download');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/ai-reports/${reportId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vedic-astrology-report-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download report. Please try again.');
+    }
+  };
+
+  // Handle view all reports
+  const handleViewReports = () => {
+    router.push('/my-reports');
+  };
+
   // Check if we have any existing report
   const hasExistingReport = !!(reportData || interpretation);
 
@@ -215,15 +263,37 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
             Comprehensive analysis powered by advanced AI
           </p>
         </div>
-        <Button
-          onClick={generateInterpretation}
-          disabled={loading}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {hasExistingReport ? 'Regenerate' : 'Generate Report'}
-        </Button>
+        <div className="flex gap-2">
+          {reportId && (
+            <>
+              <Button
+                onClick={handleDownload}
+                variant="outline"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                onClick={handleViewReports}
+                variant="outline"
+                size="sm"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                My Reports
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={generateInterpretation}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {hasExistingReport ? 'Regenerate' : 'Generate Report'}
+          </Button>
+        </div>
       </div>
 
       {error && (

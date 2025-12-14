@@ -152,6 +152,12 @@ export function MainNav() {
                       <span>AI Insights</span>
                     </DropdownMenuItem>
                   </Link>
+                  <Link href="/my-reports">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <FileText className="w-4 w-4 mr-2" />
+                      <span>My Reports</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <Link href="/ai-prompt-config">
                     <DropdownMenuItem className="cursor-pointer">
                       <FileText className="w-4 h-4 mr-2" />
