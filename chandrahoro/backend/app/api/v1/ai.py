@@ -12,15 +12,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.ai_service import AIService
 from app.services.llm_service import LlmService
+from app.services.ai_report_service import AiReportService
 from app.core.database import get_db
 from app.core.rbac import get_current_user
 from app.models import User
+from app.models.ai_report_models import ReportType, ReportStatus
+from app.schemas.ai_report_schemas import AiReportCreate
+import time
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services
 llm_service = LlmService()
+ai_report_service = AiReportService()
 
 
 class ChartInterpretationRequest(BaseModel):
@@ -91,6 +96,7 @@ async def interpret_chart(
         AI-generated interpretation with sections and metadata
     """
     try:
+        start_time = time.time()
         print(f"DEBUG: Starting interpretation for user {current_user.id}")
         logger.info(f"Generating chart interpretation for user {current_user.id}")
 
@@ -137,12 +143,61 @@ async def interpret_chart(
                 detail=f"Failed to generate interpretation: {error_msg}"
             )
 
+        # Auto-save report to database
+        report_id = None
+        try:
+            generation_time_ms = str(int((time.time() - start_time) * 1000))
+            birth_info = request.chart_data.get("birth_info", {})
+
+            # Extract chart_id if available
+            chart_id = request.chart_data.get("chart_id") or birth_info.get("chart_id")
+
+            # Calculate total tokens
+            tokens = result.get("tokens", {})
+            total_tokens = str(tokens.get("input", 0) + tokens.get("output", 0))
+
+            # Generate title
+            person_name = birth_info.get("name") or birth_info.get("person_name", "User")
+            title = f"Vedic Astrology Report - {person_name}"
+
+            # Create report data
+            report_data = AiReportCreate(
+                chart_id=chart_id,
+                report_type=ReportType.CHART_INTERPRETATION,
+                title=title,
+                description=f"Complete chart interpretation generated on {datetime.utcnow().strftime('%Y-%m-%d')}",
+                html_content=result.get("content"),
+                prompt_used=None,  # Could be added if we track the prompt
+                model_used=result.get("model"),
+                generation_time_ms=generation_time_ms,
+                tokens_used=total_tokens,
+                person_name=person_name,
+                birth_date=birth_info.get("date"),
+                birth_time=birth_info.get("time"),
+                birth_location=birth_info.get("location_name")
+            )
+
+            # Save report
+            saved_report = await ai_report_service.create_report(
+                db=db,
+                user_id=current_user.id,
+                report_data=report_data
+            )
+
+            report_id = saved_report.id
+            logger.info(f"Auto-saved report {report_id} for user {current_user.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to auto-save report: {e}")
+            # Continue even if save fails - user still gets the interpretation
+
         return {
             "success": True,
             "content": result.get("content"),
             "model": result.get("model"),
             "tokens": result.get("tokens"),
-            "timestamp": result.get("timestamp")
+            "timestamp": result.get("timestamp"),
+            "report_id": report_id  # Include report ID in response
         }
     
     except HTTPException:

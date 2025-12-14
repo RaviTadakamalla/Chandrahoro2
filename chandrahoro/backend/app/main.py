@@ -118,7 +118,7 @@ async def api_health_check():
 
 
 # Include API routers
-from app.api.v1 import chart, locations, transits, ai, auth, charts, profiles, timeline, calibration, journal, comparison, synergy, roles, candidates, teams, pipeline, corporate_dashboard, privacy, stock_universe, research_session, horoscope_generation, feature_extraction, feature_aggregation, price_data, prediction_metrics, research_dashboard, research_export, research_safety, performance_optimization, security_hardening, documentation, testing_qa, deployment, llm, methodologies, ai_prompts
+from app.api.v1 import chart, locations, transits, ai, auth, charts, profiles, timeline, calibration, journal, comparison, synergy, roles, candidates, teams, pipeline, corporate_dashboard, privacy, stock_universe, research_session, horoscope_generation, feature_extraction, feature_aggregation, price_data, prediction_metrics, research_dashboard, research_export, research_safety, performance_optimization, security_hardening, documentation, testing_qa, deployment, llm, methodologies, ai_prompts, ai_reports
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(chart.router, prefix="/api/v1/chart", tags=["charts"])
@@ -156,6 +156,7 @@ app.include_router(transits.router, prefix="/api/v1", tags=["transits"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
 app.include_router(llm.router, prefix="/api/v1/llm", tags=["llm"])
 app.include_router(ai_prompts.router, prefix="/api/v1", tags=["ai-prompts"])
+app.include_router(ai_reports.router, prefix="/api/v1/ai-reports", tags=["ai-reports"])
 
 
 if __name__ == "__main__":
