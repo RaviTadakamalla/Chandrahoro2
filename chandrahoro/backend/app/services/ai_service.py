@@ -121,17 +121,61 @@ Answer questions with accuracy and depth."""
             return {"success": False, "error": str(e)}
 
     def _prepare_chart_context(self, chart_data: Dict[str, Any]) -> str:
-        """Prepare chart data for AI context."""
+        """Prepare chart data for AI context with birth details."""
+        from datetime import datetime as dt
+        import pytz
+
         context = []
         birth_info = chart_data.get("birth_info", {})
-        context.append(f"Birth Date: {birth_info.get('date')}")
-        context.append(f"Birth Time: {birth_info.get('time', 'Unknown')}")
-        context.append(f"Location: {birth_info.get('location_name')}")
+
+        # Add person's name if available
+        name = birth_info.get('name') or birth_info.get('person_name', 'Unknown')
+        context.append(f"Name: {name}")
+
+        # Add birth date
+        birth_date = birth_info.get('date')
+        context.append(f"Birth Date: {birth_date}")
+
+        # Add birth time with timezone info
+        birth_time = birth_info.get('time', 'Unknown')
+        timezone = birth_info.get('timezone', 'UTC')
+        context.append(f"Birth Time: {birth_time} ({timezone})")
+
+        # Convert to UTC if timezone info available
+        if birth_time != 'Unknown' and birth_date:
+            try:
+                # Parse birth datetime
+                dt_str = f"{birth_date} {birth_time}"
+                local_dt = dt.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+
+                # Convert to UTC
+                local_tz = pytz.timezone(timezone) if timezone != 'UTC' else pytz.UTC
+                local_dt = local_tz.localize(local_dt)
+                utc_dt = local_dt.astimezone(pytz.UTC)
+
+                context.append(f"Birth Time (UTC): {utc_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            except Exception as e:
+                logger.debug(f"Could not convert to UTC: {e}")
+
+        # Add location details
+        location_name = birth_info.get('location_name', 'Unknown')
+        latitude = birth_info.get('latitude')
+        longitude = birth_info.get('longitude')
+
+        if latitude and longitude:
+            context.append(f"Location: {location_name} ({latitude:.4f}°, {longitude:.4f}°)")
+        else:
+            context.append(f"Location: {location_name}")
+
+        # Add ascendant
         context.append(f"\nAscendant: {chart_data.get('ascendant_sign')} {chart_data.get('ascendant', 0):.2f}°")
+
+        # Add planetary positions
         context.append("\nPlanetary Positions:")
         planets = chart_data.get("planets", [])
         for planet in planets:
             context.append(f"  {planet.get('name')}: {planet.get('sign')} {planet.get('degree_in_sign', 0):.2f}°")
+
         return "\n".join(context)
 
 
@@ -227,17 +271,61 @@ Answer questions with accuracy and depth."""
             return {"success": False, "error": str(e)}
 
     def _prepare_chart_context(self, chart_data: Dict[str, Any]) -> str:
-        """Prepare chart data for AI context."""
+        """Prepare chart data for AI context with birth details."""
+        from datetime import datetime as dt
+        import pytz
+
         context = []
         birth_info = chart_data.get("birth_info", {})
-        context.append(f"Birth Date: {birth_info.get('date')}")
-        context.append(f"Birth Time: {birth_info.get('time', 'Unknown')}")
-        context.append(f"Location: {birth_info.get('location_name')}")
+
+        # Add person's name if available
+        name = birth_info.get('name') or birth_info.get('person_name', 'Unknown')
+        context.append(f"Name: {name}")
+
+        # Add birth date
+        birth_date = birth_info.get('date')
+        context.append(f"Birth Date: {birth_date}")
+
+        # Add birth time with timezone info
+        birth_time = birth_info.get('time', 'Unknown')
+        timezone = birth_info.get('timezone', 'UTC')
+        context.append(f"Birth Time: {birth_time} ({timezone})")
+
+        # Convert to UTC if timezone info available
+        if birth_time != 'Unknown' and birth_date:
+            try:
+                # Parse birth datetime
+                dt_str = f"{birth_date} {birth_time}"
+                local_dt = dt.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+
+                # Convert to UTC
+                local_tz = pytz.timezone(timezone) if timezone != 'UTC' else pytz.UTC
+                local_dt = local_tz.localize(local_dt)
+                utc_dt = local_dt.astimezone(pytz.UTC)
+
+                context.append(f"Birth Time (UTC): {utc_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            except Exception as e:
+                logger.debug(f"Could not convert to UTC: {e}")
+
+        # Add location details
+        location_name = birth_info.get('location_name', 'Unknown')
+        latitude = birth_info.get('latitude')
+        longitude = birth_info.get('longitude')
+
+        if latitude and longitude:
+            context.append(f"Location: {location_name} ({latitude:.4f}°, {longitude:.4f}°)")
+        else:
+            context.append(f"Location: {location_name}")
+
+        # Add ascendant
         context.append(f"\nAscendant: {chart_data.get('ascendant_sign')} {chart_data.get('ascendant', 0):.2f}°")
+
+        # Add planetary positions
         context.append("\nPlanetary Positions:")
         planets = chart_data.get("planets", [])
         for planet in planets:
             context.append(f"  {planet.get('name')}: {planet.get('sign')} {planet.get('degree_in_sign', 0):.2f}°")
+
         return "\n".join(context)
 
 
