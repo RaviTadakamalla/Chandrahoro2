@@ -1,6 +1,6 @@
 /**
  * Python FastAPI Backend Client
- * 
+ *
  * Handles communication with the Python backend for:
  * - Birth chart calculations using Swiss Ephemeris
  * - Transit data
@@ -8,7 +8,9 @@
  * - Real astronomical data
  */
 
-const BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '@/lib/constants';
+
+const BACKEND_URL = process.env.PYTHON_BACKEND_URL || API_BASE_URL;
 const API_KEY = process.env.PYTHON_API_KEY;
 
 interface CalculateChartRequest {

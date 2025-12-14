@@ -42,6 +42,7 @@ import {
 import { toast } from 'sonner';
 import { AiModuleInfo, AiPromptConfigCreate, AiPromptConfigUpdate } from '@/types/ai-prompts';
 import { createPrompt, updatePrompt, testPrompt, getPromptById } from '@/lib/api/ai-prompts';
+import { API_BASE_URL } from '@/lib/constants';
 
 interface PromptEditorDialogProps {
   open: boolean;
@@ -252,7 +253,7 @@ export function PromptEditorDialog({ open, onClose, module, onSave }: PromptEdit
 
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ai-prompts/${module.custom_prompt_id}/upload-sample-format`,
+        `${API_BASE_URL}/api/v1/ai-prompts/${module.custom_prompt_id}/upload-sample-format`,
         {
           method: 'POST',
           headers: {
@@ -289,7 +290,7 @@ export function PromptEditorDialog({ open, onClose, module, onSave }: PromptEdit
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/ai-prompts/${module.custom_prompt_id}/sample-format`,
+        `${API_BASE_URL}/api/v1/ai-prompts/${module.custom_prompt_id}/sample-format`,
         {
           method: 'DELETE',
           headers: {

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { API_BASE_URL } from '@/lib/constants';
 
 export interface MethodologyInfo {
   name: string;
@@ -63,10 +64,7 @@ export default function MethodologySelector({
 
   const fetchMethodologies = async () => {
     try {
-      // In production, use relative URL (empty string) for same-origin requests
-      const isDev = process.env.NODE_ENV === 'development';
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:8000' : '');
-      const response = await fetch(`${apiUrl}/api/v1/methodologies/`);
+      const response = await fetch(`${API_BASE_URL}/api/v1/methodologies/`);
       const data = await response.json();
       setMethodologies(data.methodologies || []);
     } catch (error) {

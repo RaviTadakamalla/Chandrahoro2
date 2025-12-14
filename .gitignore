@@ -72,3 +72,31 @@ htmlcov/
 *.tmp
 .cache
 
+# Status and progress reports (keep only in docs/)
+*_SUMMARY.md
+*_COMPLETE.md
+*_STATUS.md
+*_REPORT.md
+*_GUIDE.md
+*_ANALYSIS.md
+*_INDEX.md
+*_FIXES*.md
+CHANGES_SUMMARY.md
+FINAL_FIXES*.md
+DEPLOYMENT_GUIDE.md
+deployment.log
+
+# Keep docs directory organized
+!docs/**/*.md
+!docs/CLAUDE.md
+!README.md
+
+# Build artifacts
+.next/cache/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Old webpack caches
+*.pack.gz.old

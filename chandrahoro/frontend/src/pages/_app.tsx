@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { FullPageError } from '@/components/ui/error-alert';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
 import Head from 'next/head';
 
 // Error boundary component
@@ -74,6 +75,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <ErrorBoundary>
             <Component {...pageProps} />
           </ErrorBoundary>
+          <Toaster />
         </AuthProvider>
       </QueryClientProvider>
     </>

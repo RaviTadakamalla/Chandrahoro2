@@ -8,6 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func, desc
 from app.core.database import get_db
 from app.core.rbac import get_current_user
+from app.core.exceptions import (
+    ValidationError, NotFoundError, AuthorizationError, DatabaseError
+)
 from app.models import (
     User, LlmConfig, LlmSharedKey, LlmSharedKeyUsage, LlmAdminDefaults, LlmUserAccess, LlmAuditLog,
     LlmProvider, ResponseFormat, AuditAction, RoleEnum
@@ -299,9 +302,8 @@ async def save_config(
         if config_input.use_shared_key:
             # Using shared key
             if not config_input.shared_key_account_name:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="shared_key_account_name is required when use_shared_key is true"
+                raise ValidationError(
+                    "shared_key_account_name is required when use_shared_key is true"
                 )
 
             # Verify shared key exists and user has access
@@ -313,9 +315,8 @@ async def save_config(
             shared_key = result.scalar_one_or_none()
 
             if not shared_key:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Shared key '{config_input.shared_key_account_name}' not found"
+                raise NotFoundError(
+                    f"Shared key '{config_input.shared_key_account_name}' not found"
                 )
 
             # Check access
@@ -326,15 +327,13 @@ async def save_config(
             )
 
             if not can_use:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have access to this shared key"
+                raise AuthorizationError(
+                    "You don't have access to this shared key"
                 )
 
             if not shared_key.is_active:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="This shared key is not active"
+                raise ValidationError(
+                    "This shared key is not active"
                 )
 
             # Get or create user config
@@ -375,15 +374,13 @@ async def save_config(
         elif config_input.use_owner_name:
             # Using owner name (simple key sharing for testing)
             if not config_input.key_owner_name:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="key_owner_name is required when use_owner_name is true"
+                raise ValidationError(
+                    "key_owner_name is required when use_owner_name is true"
                 )
 
             if not config_input.provider or not config_input.model or not config_input.api_key:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="provider, model, and api_key are required for owner name configuration"
+                raise ValidationError(
+                    "provider, model, and api_key are required for owner name configuration"
                 )
 
             # Save configuration with owner name
@@ -402,9 +399,8 @@ async def save_config(
         else:
             # Using personal key (BYOK)
             if not config_input.provider or not config_input.model or not config_input.api_key:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="provider, model, and api_key are required for personal key configuration"
+                raise ValidationError(
+                    "provider, model, and api_key are required for personal key configuration"
                 )
 
             # Check if BYOK is disabled globally
@@ -412,9 +408,8 @@ async def save_config(
             defaults = result.scalar_one_or_none()
 
             if defaults and defaults.enforced:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="BYOK is disabled by administrator"
+                raise AuthorizationError(
+                    "BYOK is disabled by administrator"
                 )
 
             # Check user-specific BYOK permission
@@ -424,17 +419,15 @@ async def save_config(
             user_access = result.scalar_one_or_none()
 
             if user_access and not user_access.byok_enabled:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="BYOK is disabled for your account"
+                raise AuthorizationError(
+                    "BYOK is disabled for your account"
                 )
 
             # Validate provider is allowed
             if defaults and defaults.allowed_providers:
                 if config_input.provider not in defaults.allowed_providers:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Provider {config_input.provider} is not allowed"
+                    raise ValidationError(
+                        f"Provider {config_input.provider} is not allowed"
                     )
 
             # Save configuration
@@ -449,41 +442,48 @@ async def save_config(
 
             return {"ok": True}
 
+    except (ValidationError, NotFoundError, AuthorizationError):
+        # Re-raise custom exceptions - global handler will handle them
+        raise
     except HTTPException:
         raise
     except ValueError as e:
-        # Handle validation errors with user-friendly messages
-        error_msg = str(e)
-        logger.error(f"Validation error in save config: {error_msg}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_msg
-        )
+        # Handle validation errors
+        logger.error(f"Validation error in save config: {str(e)}")
+        raise ValidationError(str(e))
     except Exception as e:
         # Handle database and other errors
         error_msg = str(e)
-        logger.error(f"Save config error: {error_msg}")
+        logger.error(f"Save config error: {error_msg}", exc_info=True)
 
         # Provide user-friendly error messages for common issues
         if "is not among the defined enum values" in error_msg:
             # Extract provider name from error if possible
             if "perplexity" in error_msg.lower():
-                detail = "The provider 'perplexity' is not supported. Please contact support to enable this provider."
+                raise ValidationError(
+                    "The provider 'perplexity' is not supported. Please contact support to enable this provider."
+                )
             else:
-                detail = "The selected provider is not supported. Please choose a different provider."
+                raise ValidationError(
+                    "The selected provider is not supported. Please choose a different provider."
+                )
         elif "Duplicate entry" in error_msg:
-            detail = "A configuration already exists. Please update your existing configuration instead."
+            raise DatabaseError(
+                "A configuration already exists. Please update your existing configuration instead."
+            )
         elif "foreign key constraint fails" in error_msg.lower():
-            detail = "Invalid reference. Please check your configuration and try again."
+            raise DatabaseError(
+                "Invalid reference. Please check your configuration and try again."
+            )
         elif "connection" in error_msg.lower() or "timeout" in error_msg.lower():
-            detail = "Database connection error. Please try again in a moment."
+            raise DatabaseError(
+                "Database connection error. Please try again in a moment."
+            )
         else:
-            detail = "Failed to save configuration. Please check your inputs and try again."
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=detail
-        )
+            raise DatabaseError(
+                "Failed to save configuration. Please check your inputs and try again.",
+                details={"error": error_msg}
+            )
 
 
 @router.post("/rotate")

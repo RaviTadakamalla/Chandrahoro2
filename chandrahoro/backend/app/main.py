@@ -1,13 +1,15 @@
 """Main FastAPI application for Chandrahoro Vedic Horoscope Chart Pack."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.logging_config import LoggingMiddleware, logger
 from app.core.database import init_db, close_db
+from app.core.exceptions import AppException
 import logging
 from dotenv import load_dotenv
 import os
+import traceback
 
 # Load environment variables from .env file
 load_dotenv()
@@ -56,6 +58,52 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global exception handlers
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    """Handle custom application exceptions."""
+    logger.error(
+        f"Application error: {exc.message}",
+        extra={
+            "path": str(request.url),
+            "method": request.method,
+            "status_code": exc.status_code,
+            "details": exc.details
+        }
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.message,
+            "type": exc.__class__.__name__,
+            "path": str(request.url),
+            **exc.details
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all unhandled exceptions."""
+    logger.error(
+        f"Unhandled exception: {str(exc)}",
+        extra={
+            "path": str(request.url),
+            "method": request.method,
+            "traceback": traceback.format_exc()
+        },
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An internal server error occurred",
+            "type": exc.__class__.__name__,
+            "path": str(request.url)
+        }
+    )
 
 
 # Import methodologies to register them
