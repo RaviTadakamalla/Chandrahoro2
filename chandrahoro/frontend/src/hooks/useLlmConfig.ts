@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { LlmConfigInput, LlmConfigSummary, TestConnectionResult, ApiResponse } from '@/types/llm';
 import { API_URL } from '@/lib/constants';
+import { parseErrorFromResponse, showErrorToast, showSuccessToast } from '@/lib/error-handler';
 
 interface UseLlmConfigState {
   config: LlmConfigSummary | null;
@@ -35,16 +36,17 @@ export function useLlmConfig() {
 
   const loadConfig = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const response = await fetch(`/api/v1/llm/me`, {
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to load config: ${response.status}`);
+        const errorMessage = await parseErrorFromResponse(response);
+        throw new Error(errorMessage);
       }
-      
+
       const config: LlmConfigSummary | null = await response.json();
 
       setState(prev => ({
@@ -127,29 +129,36 @@ export function useLlmConfig() {
         headers: getAuthHeaders(),
         body: JSON.stringify(saveRequest)
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to save config: ${response.status}`);
+        const errorMessage = await parseErrorFromResponse(response);
+        throw new Error(errorMessage);
       }
-      
+
       const data: ApiResponse = await response.json();
-      
+
       if (!data.ok) {
         throw new Error(data.error || 'Failed to save configuration');
       }
-      
+
       setState(prev => ({ ...prev, saving: false }));
-      
+
       // Reload config after successful save
       await loadConfig();
-      
+
+      showSuccessToast('Configuration saved successfully');
       return true;
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save configuration';
       setState(prev => ({
         ...prev,
         saving: false,
-        error: err instanceof Error ? err.message : 'Failed to save configuration'
+        error: errorMessage
       }));
+      showErrorToast(err, {
+        title: 'Failed to Save Configuration',
+        logToConsole: true
+      });
       return false;
     }
   }, [loadConfig]);

@@ -9,6 +9,9 @@ from app.core.database import get_db
 from app.core.rbac import get_current_user
 from app.core.rate_limit import check_rate_limit, RATE_LIMITS
 from app.core.security import hash_password, verify_password
+from app.core.exceptions import (
+    ValidationError, AuthenticationError, RateLimitError, DatabaseError
+)
 from app.models import User, RoleEnum
 from app.services.auth_service import AuthService
 import logging
@@ -107,12 +110,11 @@ async def register(
         **RATE_LIMITS["auth"]
     )
     if not is_allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many registration attempts",
-            headers={"Retry-After": str(rate_limit_info["reset"])},
+        raise RateLimitError(
+            "Too many registration attempts",
+            details={"retry_after": rate_limit_info["reset"]}
         )
-    
+
     try:
         # Auto-generate username from email if not provided
         username = request.username or request.email.split('@')[0]
@@ -124,22 +126,19 @@ async def register(
             password=request.password,
             full_name=request.full_name,
         )
-        
+
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
         )
-    
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise ValidationError(str(e))
     except Exception as e:
-        logger.error(f"Registration error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed",
+        logger.error(f"Registration error: {e}", exc_info=True)
+        raise DatabaseError(
+            "Registration failed. Please try again.",
+            details={"error": str(e)}
         )
 
 
@@ -164,28 +163,33 @@ async def login(
         **RATE_LIMITS["auth"]
     )
     if not is_allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts",
-            headers={"Retry-After": str(rate_limit_info["reset"])},
+        raise RateLimitError(
+            "Too many login attempts",
+            details={"retry_after": rate_limit_info["reset"]}
         )
     
-    user, access_token, refresh_token = await AuthService.authenticate_user(
-        db=db,
-        email=request.email,
-        password=request.password,
-    )
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+    try:
+        user, access_token, refresh_token = await AuthService.authenticate_user(
+            db=db,
+            email=request.email,
+            password=request.password,
         )
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-    )
+
+        if not user:
+            raise AuthenticationError("Invalid email or password")
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+    except AuthenticationError:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
+        raise DatabaseError(
+            "Login failed. Please try again.",
+            details={"error": str(e)}
+        )
 
 
 @router.get("/me", response_model=UserResponse)
