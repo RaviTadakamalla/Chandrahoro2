@@ -7,7 +7,8 @@ import json
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import Response
-from pydantic import ValidationError
+from pydantic import ValidationError as PydanticValidationError
+from app.core.exceptions import ValidationError, NotFoundError, DatabaseError
 
 from app.models.chart import ChartRequest, ChartData, BirthDetails, ChartPreferences, PlanetPosition, HousePosition
 from app.models.chart_models import BirthChart
@@ -171,9 +172,8 @@ async def calculate_chart(
 
         # Get the selected methodology result
         if selected_methodology not in methodology_results:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Selected methodology '{selected_methodology}' is not available or failed to calculate"
+            raise ValidationError(
+                f"Selected methodology '{selected_methodology}' is not available or failed to calculate"
             )
 
         chart_result = methodology_results[selected_methodology]
@@ -557,7 +557,7 @@ async def calculate_chart(
 
         return response_data
 
-    except ValidationError as e:
+    except PydanticValidationError as e:
         logger.error(f"Validation error in chart calculation: {e}")
         # Extract detailed validation errors
         error_details = []
@@ -566,33 +566,25 @@ async def calculate_chart(
             message = error['msg']
             error_details.append(f"{field}: {message}")
 
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "error": "Validation failed",
-                "details": error_details,
-                "message": "Please check your input data and try again"
+        raise ValidationError(
+            "Please check your input data and try again",
+            details={
+                "validation_errors": error_details
             }
         )
 
     except ValueError as e:
         logger.error(f"Value error in chart calculation: {e}")
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "Invalid input data",
-                "message": str(e)
-            }
-        )
+        raise ValidationError(str(e))
+
+    except (ValidationError, NotFoundError):
+        raise
 
     except Exception as e:
-        logger.error(f"Error calculating chart: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "Internal server error",
-                "message": "An unexpected error occurred during chart calculation"
-            }
+        logger.error(f"Error calculating chart: {e}", exc_info=True)
+        raise DatabaseError(
+            "An unexpected error occurred during chart calculation",
+            details={"error": str(e)}
         )
 
 
