@@ -763,19 +763,147 @@ async def export_match_horoscope_pdf(
         )
 
 
+@router.post("/generate-html-report")
+async def generate_html_report(
+    request: ChartInterpretationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Generate a complete standalone HTML Vedic horoscope report.
+
+    This endpoint generates a comprehensive, beautifully formatted HTML document
+    with inline CSS that can be:
+    - Viewed directly in a browser
+    - Saved as a standalone HTML file
+    - Printed or converted to PDF
+
+    Args:
+        request: Chart data and optional configuration
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        Complete HTML document as a string
+    """
+    try:
+        logger.info(f"Generating HTML report for user {current_user.id}")
+        start_time = time.time()
+
+        # Get user's LLM configuration
+        llm_config = await llm_service.get_config(db, current_user.id)
+        if not llm_config:
+            raise ConfigurationError(
+                "No LLM configuration found. Please configure your AI settings first."
+            )
+
+        if not llm_config.is_active:
+            raise ConfigurationError(
+                "LLM configuration is inactive. Please check your AI settings."
+            )
+
+        # Generate the HTML report
+        result = await llm_service.generate_html_report(
+            db, current_user.id, request.chart_data
+        )
+
+        if not result.get("success"):
+            error_msg = result.get('error', 'Unknown error')
+            # Check for encryption key errors
+            if 'InvalidToken' in error_msg or 'decrypt' in error_msg.lower():
+                raise ConfigurationError(
+                    "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+                )
+            raise ExternalAPIError(
+                f"Failed to generate HTML report: {error_msg}",
+                service="LLM Service"
+            )
+
+        # Calculate generation time
+        generation_time_ms = int((time.time() - start_time) * 1000)
+
+        # Extract HTML content from result
+        html_content = result.get("content", "")
+
+        # Save the HTML report to database
+        try:
+            # Extract birth info for report metadata
+            birth_info = request.chart_data.get("birth_info", {})
+            person_name = birth_info.get("name", "Unknown")
+            birth_date = birth_info.get("date")
+            birth_time = birth_info.get("time")
+            birth_location = birth_info.get("location_name", birth_info.get("location"))
+
+            # Find chart ID from request (if available)
+            chart_id = request.chart_data.get("chart_id") or request.chart_data.get("id")
+
+            # Create report record
+            report_data = AiReportCreate(
+                chart_id=chart_id,
+                report_type=ReportType.FULL_INTERPRETATION,
+                title=f"Vedic Horoscope - {person_name}",
+                description="Comprehensive HTML Vedic horoscope report with detailed analysis",
+                html_content=html_content,
+                prompt_used="HTML Report Generation",
+                model_used=result.get("model", llm_config.model),
+                generation_time_ms=generation_time_ms,
+                tokens_used=result.get("tokens", {}),
+                person_name=person_name,
+                birth_date=birth_date,
+                birth_time=birth_time,
+                birth_location=birth_location
+            )
+
+            saved_report = await ai_report_service.create_report(
+                db, current_user.id, report_data
+            )
+            report_id = saved_report.id
+            logger.info(f"HTML report saved with ID: {report_id}")
+
+        except Exception as e:
+            logger.warning(f"Could not save HTML report to database: {e}")
+            report_id = None
+
+        return {
+            "success": True,
+            "html_content": html_content,
+            "model": result.get("model"),
+            "tokens": result.get("tokens"),
+            "generation_time_ms": generation_time_ms,
+            "timestamp": result.get("timestamp"),
+            "report_id": report_id
+        }
+
+    except (ConfigurationError, ExternalAPIError, DatabaseError):
+        raise
+    except Exception as e:
+        logger.error(f"Error generating HTML report: {e}", exc_info=True)
+        error_str = str(e)
+        if 'InvalidToken' in error_str or 'decrypt' in error_str.lower() or 'Signature did not match' in error_str:
+            raise ConfigurationError(
+                "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+            )
+        raise ExternalAPIError(
+            "An unexpected error occurred while generating HTML report",
+            service="AI Service",
+            details={"error": error_str}
+        )
+
+
 @router.get("/test")
 async def test_ai_api():
     """Test endpoint to verify AI API is working."""
     return {
         "status": "healthy",
         "message": "AI API is operational",
-        "provider": ai_provider,
+        "service": "llm_service",
         "endpoints": [
             "POST /api/v1/ai/interpret - Generate chart interpretation",
             "POST /api/v1/ai/chat - Ask questions about chart",
             "POST /api/v1/ai/feedback - Submit feedback",
             "GET /api/v1/ai/usage - Get usage statistics",
-            "POST /api/v1/ai/regenerate - Regenerate interpretation"
+            "POST /api/v1/ai/regenerate - Regenerate interpretation",
+            "POST /api/v1/ai/generate-html-report - Generate standalone HTML report"
         ]
     }
 

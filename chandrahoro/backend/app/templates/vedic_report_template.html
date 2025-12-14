@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vedic Horoscope - {name}</title>
+    <style>
+        :root {{
+            --primary: #8B4513;
+            --secondary: #A0522D;
+            --gold: #C9A227;
+            --cream: #FDF8F0;
+            --bg-dark: #2D1810;
+            --bg-card: #FFF8F0;
+            --border: #DEB887;
+            --success: #2D5016;
+            --warning: #8B6914;
+            --text-dark: #1a0f08;
+            --accent: #D4A574;
+            --shadow: rgba(139, 69, 19, 0.15);
+        }}
+
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        html {{
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }}
+
+        body {{
+            font-family: 'Georgia', 'Noto Sans Devanagari', serif;
+            background-color: var(--cream);
+            color: var(--text-dark);
+            line-height: 1.7;
+        }}
+
+        header {{
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary) 100%);
+            color: var(--cream);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--gold);
+        }}
+
+        .sanskrit {{
+            font-size: 1.5rem;
+            margin: 0.5rem 0;
+            font-style: italic;
+            color: var(--gold);
+        }}
+
+        h1 {{
+            font-size: 2.5rem;
+            margin: 1rem 0;
+            font-weight: normal;
+            letter-spacing: 2px;
+        }}
+
+        .subtitle {{
+            font-size: 1.2rem;
+            color: var(--gold);
+            margin-top: 1rem;
+        }}
+
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }}
+
+        section {{
+            margin-bottom: 3rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border-left: 5px solid var(--primary);
+            box-shadow: 0 4px 6px var(--shadow);
+            padding: 2rem;
+        }}
+
+        h2 {{
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 0.5rem;
+        }}
+
+        h3 {{
+            color: var(--secondary);
+            font-size: 1.4rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+            border-left: 3px solid var(--gold);
+        }}
+
+        h4 {{
+            color: var(--secondary);
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }}
+
+        /* AI Content Formatting */
+        .ai-content {{
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }}
+
+        .ai-content > p {{
+            margin-bottom: 1.2rem;
+        }}
+
+        .ai-content ul, .ai-content ol {{
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }}
+
+        .ai-content li {{
+            margin-bottom: 0.5rem;
+        }}
+
+        .ai-content strong {{
+            color: var(--primary);
+            font-weight: 600;
+        }}
+
+        .ai-content em {{
+            color: var(--secondary);
+            font-style: italic;
+        }}
+
+        /* Chart Grid Layout (South Indian Style) */
+        .chart-container {{
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin: 2rem 0;
+        }}
+
+        .chart {{
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px var(--shadow);
+        }}
+
+        .chart-title {{
+            text-align: center;
+            color: var(--primary);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }}
+
+        .chart-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 2px solid var(--primary);
+            margin: 0 auto;
+            max-width: 400px;
+        }}
+
+        .chart-cell {{
+            background: white;
+            padding: 1rem;
+            min-height: 80px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }}
+
+        .chart-cell .house-number {{
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 0.7rem;
+            color: var(--secondary);
+            font-weight: bold;
+        }}
+
+        .chart-cell .planets {{
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }}
+
+        /* Table Styling */
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px var(--shadow);
+        }}
+
+        thead {{
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }}
+
+        th {{
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }}
+
+        tbody tr {{
+            border-bottom: 1px solid var(--border);
+        }}
+
+        tbody tr:hover {{
+            background-color: var(--cream);
+        }}
+
+        td {{
+            padding: 0.8rem 1rem;
+        }}
+
+        /* Card Layout for Yogas/Houses */
+        .card-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }}
+
+        .card {{
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--gold);
+            box-shadow: 0 2px 4px var(--shadow);
+            transition: transform 0.2s;
+        }}
+
+        .card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow);
+        }}
+
+        .card-title {{
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }}
+
+        .card-content {{
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }}
+
+        /* Info Grid for Birth Details */
+        .info-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }}
+
+        .info-item {{
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--gold);
+            box-shadow: 0 1px 3px var(--shadow);
+        }}
+
+        .info-label {{
+            color: var(--secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }}
+
+        .info-value {{
+            color: var(--text-dark);
+            font-size: 1rem;
+        }}
+
+        /* Remedy Boxes */
+        .remedy-box {{
+            background: linear-gradient(135deg, #FFF8F0 0%, #FFE8D0 100%);
+            border-left: 5px solid var(--warning);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px var(--shadow);
+        }}
+
+        .remedy-title {{
+            color: var(--warning);
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+        }}
+
+        /* Dashboard/Summary Grid */
+        .dashboard {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }}
+
+        .dashboard-item {{
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px var(--shadow);
+            border-top: 3px solid var(--gold);
+        }}
+
+        .dashboard-label {{
+            color: var(--secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }}
+
+        .dashboard-value {{
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }}
+
+        /* Blockquote Styling */
+        blockquote {{
+            border-left: 4px solid var(--gold);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--secondary);
+        }}
+
+        /* Code/Sanskrit Styling */
+        code {{
+            background: var(--cream);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Noto Sans Devanagari', monospace;
+            color: var(--primary);
+        }}
+
+        footer {{
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary) 100%);
+            color: var(--cream);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 3px solid var(--gold);
+        }}
+
+        /* Print Styles */
+        @media print {{
+            .container {{
+                max-width: 100%;
+            }}
+            section {{
+                page-break-inside: avoid;
+            }}
+            .chart-container {{
+                page-break-inside: avoid;
+            }}
+            table {{
+                page-break-inside: avoid;
+            }}
+            .card {{
+                page-break-inside: avoid;
+            }}
+        }}
+
+        /* Responsive Design */
+        @media (max-width: 768px) {{
+            .chart-container {{
+                grid-template-columns: 1fr;
+            }}
+            .chart-grid {{
+                max-width: 100%;
+            }}
+            .info-grid, .card-grid, .dashboard {{
+                grid-template-columns: 1fr;
+            }}
+            h1 {{
+                font-size: 2rem;
+            }}
+            h2 {{
+                font-size: 1.5rem;
+            }}
+        }}
+    </style>
+    <script>
+        // Convert markdown-style headings to HTML
+        document.addEventListener('DOMContentLoaded', function() {{
+            const contentDiv = document.querySelector('.ai-content');
+            if (!contentDiv) return;
+
+            let html = contentDiv.innerHTML;
+
+            // Convert ## headings to h2
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+
+            // Convert ### headings to h3
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+
+            // Convert #### headings to h4
+            html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+
+            // Convert **bold** to <strong>
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+            // Convert *italic* to <em>
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+            // Convert bullet lists
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            // Convert numbered lists
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+            // Wrap bare text in paragraphs (preserve existing HTML tags)
+            const lines = html.split('\n');
+            let processedLines = [];
+            let inList = false;
+
+            lines.forEach(line => {{
+                const trimmed = line.trim();
+                if (!trimmed) {{
+                    processedLines.push('');
+                }} else if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<li') || trimmed.startsWith('<table') || trimmed.startsWith('<div')) {{
+                    processedLines.push(trimmed);
+                    inList = trimmed.startsWith('<ul') || trimmed.startsWith('<ol');
+                }} else if (trimmed.endsWith('</ul>') || trimmed.endsWith('</ol>')) {{
+                    processedLines.push(trimmed);
+                    inList = false;
+                }} else if (!inList && !trimmed.startsWith('<')) {{
+                    processedLines.push('<p>' + trimmed + '</p>');
+                }} else {{
+                    processedLines.push(trimmed);
+                }}
+            }});
+
+            contentDiv.innerHTML = processedLines.join('\n');
+        }});
+    </script>
+</head>
+<body>
+    <header>
+        <div class="sanskrit">॥ श्री गणेशाय नमः ॥</div>
+        <div class="sanskrit">ॐ गुरवे नमः</div>
+        <h1>Vedic Horoscope Report</h1>
+        <h2 style="color: var(--gold);">{name}</h2>
+        <div class="subtitle">Jyotish Shastra - Ancient Vedic Wisdom</div>
+    </header>
+
+    <div class="container">
+        <!-- Birth Charts Section -->
+        {chart_html}
+
+        <section>
+            <h2>Complete Vedic Astrology Analysis</h2>
+            <div class="ai-content">{ai_content}</div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="sanskrit">॥ शुभं भवतु ॥</div>
+        <p style="margin-top: 1rem;">Generated by ChandraHoro - Vedic Astrology Platform</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Powered by AI | Generated on {date}</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">For guidance purposes only. Consult a qualified Jyotish for personalized advice.</p>
+    </footer>
+</body>
+</html>

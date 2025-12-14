@@ -723,6 +723,349 @@ class LlmService:
                 "error": f"Failed to generate compatibility analysis: {str(e)}"
             }
 
+    def _generate_chart_html(self, chart_data: Dict[str, Any]) -> str:
+        """
+        Generate South Indian style chart HTML from chart data.
+
+        Creates visual 4x4 grid charts for both Rashi (D1) and Navamsa (D9).
+
+        Args:
+            chart_data: Complete chart data with planets and houses
+
+        Returns:
+            HTML string with chart grids
+        """
+        html = '<div class="chart-container">\n'
+
+        # Extract planets data
+        planets = chart_data.get('planets', [])
+        houses = chart_data.get('houses', [])
+
+        # Build planet-to-house mapping
+        planet_houses = {}
+        if isinstance(planets, list):
+            for planet_data in planets:
+                name = planet_data.get('name', '')
+                house = planet_data.get('house', 0)
+                if house:
+                    if house not in planet_houses:
+                        planet_houses[house] = []
+                    # Use abbreviations for space efficiency
+                    abbrev = {
+                        'Sun': 'Su', 'Moon': 'Mo', 'Mars': 'Ma',
+                        'Mercury': 'Me', 'Jupiter': 'Ju', 'Venus': 'Ve',
+                        'Saturn': 'Sa', 'Rahu': 'Ra', 'Ketu': 'Ke',
+                        'Ascendant': 'Asc'
+                    }.get(name, name[:2])
+                    planet_houses[house].append(abbrev)
+        elif isinstance(planets, dict):
+            for planet_name, pdata in planets.items():
+                house = pdata.get('house', 0)
+                if house:
+                    if house not in planet_houses:
+                        planet_houses[house] = []
+                    abbrev = {
+                        'Sun': 'Su', 'Moon': 'Mo', 'Mars': 'Ma',
+                        'Mercury': 'Me', 'Jupiter': 'Ju', 'Venus': 'Ve',
+                        'Saturn': 'Sa', 'Rahu': 'Ra', 'Ketu': 'Ke',
+                        'Ascendant': 'Asc'
+                    }.get(planet_name, planet_name[:2])
+                    planet_houses[house].append(abbrev)
+
+        # Rashi Chart (D1)
+        html += '  <div class="chart">\n'
+        html += '    <div class="chart-title">Rashi Chart (D1)</div>\n'
+        html += '    <div class="chart-grid">\n'
+
+        # South Indian style: 4x4 grid
+        # Layout (house numbers):
+        # [12] [1]  [2]  [3]
+        # [11] [ ]  [ ]  [4]
+        # [10] [ ]  [ ]  [5]
+        # [9]  [8]  [7]  [6]
+        house_order = [12, 1, 2, 3, 11, 0, 0, 4, 10, 0, 0, 5, 9, 8, 7, 6]
+
+        for i, house_num in enumerate(house_order):
+            if house_num == 0:
+                # Empty center cells
+                html += '      <div class="chart-cell"></div>\n'
+            else:
+                planets_in_house = planet_houses.get(house_num, [])
+                planet_str = ' '.join(planets_in_house) if planets_in_house else ''
+                html += f'      <div class="chart-cell">\n'
+                html += f'        <span class="house-number">{house_num}</span>\n'
+                if planet_str:
+                    html += f'        <div class="planets">{planet_str}</div>\n'
+                html += '      </div>\n'
+
+        html += '    </div>\n'
+        html += '  </div>\n'
+
+        # Navamsa Chart (D9) - if available in chart_data
+        navamsa_planets = chart_data.get('navamsa_planets', chart_data.get('divisional_charts', {}).get('D9', {}).get('planets', []))
+
+        if navamsa_planets:
+            # Build navamsa planet-to-house mapping
+            navamsa_planet_houses = {}
+            if isinstance(navamsa_planets, list):
+                for planet_data in navamsa_planets:
+                    name = planet_data.get('name', '')
+                    house = planet_data.get('house', 0)
+                    if house:
+                        if house not in navamsa_planet_houses:
+                            navamsa_planet_houses[house] = []
+                        abbrev = {
+                            'Sun': 'Su', 'Moon': 'Mo', 'Mars': 'Ma',
+                            'Mercury': 'Me', 'Jupiter': 'Ju', 'Venus': 'Ve',
+                            'Saturn': 'Sa', 'Rahu': 'Ra', 'Ketu': 'Ke'
+                        }.get(name, name[:2])
+                        navamsa_planet_houses[house].append(abbrev)
+            elif isinstance(navamsa_planets, dict):
+                for planet_name, pdata in navamsa_planets.items():
+                    house = pdata.get('house', 0)
+                    if house:
+                        if house not in navamsa_planet_houses:
+                            navamsa_planet_houses[house] = []
+                        abbrev = {
+                            'Sun': 'Su', 'Moon': 'Mo', 'Mars': 'Ma',
+                            'Mercury': 'Me', 'Jupiter': 'Ju', 'Venus': 'Ve',
+                            'Saturn': 'Sa', 'Rahu': 'Ra', 'Ketu': 'Ke'
+                        }.get(planet_name, planet_name[:2])
+                        navamsa_planet_houses[house].append(abbrev)
+
+            html += '  <div class="chart">\n'
+            html += '    <div class="chart-title">Navamsa Chart (D9)</div>\n'
+            html += '    <div class="chart-grid">\n'
+
+            for i, house_num in enumerate(house_order):
+                if house_num == 0:
+                    html += '      <div class="chart-cell"></div>\n'
+                else:
+                    planets_in_house = navamsa_planet_houses.get(house_num, [])
+                    planet_str = ' '.join(planets_in_house) if planets_in_house else ''
+                    html += f'      <div class="chart-cell">\n'
+                    html += f'        <span class="house-number">{house_num}</span>\n'
+                    if planet_str:
+                        html += f'        <div class="planets">{planet_str}</div>\n'
+                    html += '      </div>\n'
+
+            html += '    </div>\n'
+            html += '  </div>\n'
+
+        html += '</div>\n'
+
+        return html
+
+    async def generate_html_report(
+        self,
+        db: AsyncSession,
+        user_id: str,
+        chart_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Generate a complete standalone HTML Vedic horoscope report.
+
+        This generates a comprehensive, beautifully formatted HTML document
+        with inline CSS that can be viewed in a browser or saved as a file.
+
+        Args:
+            db: Database session
+            user_id: User ID
+            chart_data: Complete birth chart data
+
+        Returns:
+            Dict with success status and HTML content
+        """
+        # Get user's LLM configuration
+        config = await self.get_config(db, user_id)
+
+        # Fallback to environment variables if no user config
+        api_key = None
+        provider = None
+        model = None
+
+        if config and config.is_active:
+            # Use user's configuration
+            provider = config.provider
+            model = config.model
+
+            # Retrieve and decrypt API key
+            try:
+                encrypted_key = await self._retrieve_encrypted_key(config.key_vault_ref)
+                api_key = self.vault.decrypt_key(encrypted_key)
+            except Exception as e:
+                # Check for encryption/decryption errors
+                error_str = str(e)
+                error_type = type(e).__name__
+                if 'InvalidToken' in error_type or 'InvalidSignature' in error_type or 'InvalidToken' in error_str or 'Signature did not match' in error_str or 'InvalidSignature' in error_str:
+                    logger.warning(f"Encryption error for user {user_id}, falling back to env vars")
+                    api_key = None  # Will fallback to env vars below
+                else:
+                    # Re-raise other errors
+                    raise
+
+        # Fallback to environment variables (generic option)
+        if not api_key:
+            import os
+            logger.info("Using environment variable API keys as fallback")
+
+            # Try OpenRouter first (you have a valid key!)
+            if os.getenv('OPENROUTER_API_KEY'):
+                api_key = os.getenv('OPENROUTER_API_KEY')
+                provider = LlmProvider.OPENROUTER  # Use OpenRouter provider
+                model = 'meta-llama/llama-3.1-70b-instruct'  # Free model on OpenRouter
+                logger.info("Using OpenRouter (Llama 3.1 70B) from environment variables")
+            # Try Perplexity second
+            elif os.getenv('PERPLEXITY_API_KEY'):
+                api_key = os.getenv('PERPLEXITY_API_KEY')
+                provider = LlmProvider.PERPLEXITY
+                model = 'sonar-pro'
+                logger.info("Using Perplexity (sonar-pro) from environment variables")
+            # Try Groq (fast and has free tier)
+            elif os.getenv('GROQ_API_KEY'):
+                api_key = os.getenv('GROQ_API_KEY')
+                provider = LlmProvider.OPENAI
+                model = 'llama-3.1-70b-versatile'
+                logger.info("Using Groq (llama-3.1-70b) from environment variables")
+            # Try OpenAI
+            elif os.getenv('OPENAI_API_KEY'):
+                api_key = os.getenv('OPENAI_API_KEY')
+                provider = LlmProvider.OPENAI
+                model = 'gpt-4-turbo'
+                logger.info("Using OpenAI from environment variables")
+            # Try Anthropic
+            elif os.getenv('ANTHROPIC_API_KEY'):
+                api_key = os.getenv('ANTHROPIC_API_KEY')
+                provider = LlmProvider.ANTHROPIC
+                model = 'claude-3-5-sonnet-20241022'
+                logger.info("Using Anthropic from environment variables")
+            else:
+                return {
+                    "success": False,
+                    "error": "No API key available. Please configure AI settings or add API key to environment variables."
+                }
+
+        if not api_key:
+            return {
+                "success": False,
+                "error": "No API key available"
+            }
+
+        try:
+            # Build the HTML report prompt
+            prompt = self._build_html_report_prompt(chart_data)
+
+            # Generate HTML using the configured or fallback provider
+            result = await self._generate_with_provider(
+                provider, api_key, model,
+                {"chart_data": chart_data},
+                "html_report",
+                custom_prompt=prompt
+            )
+
+            if result.get("success"):
+                # Extract pure HTML from the response
+                content = result.get("content", "")
+
+                # Remove markdown code blocks if present
+                if "```html" in content:
+                    content = content.split("```html")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+
+                # Extract HTML between <!DOCTYPE and </html>
+                if "<!DOCTYPE" in content or "<html" in content:
+                    # Find the start
+                    start_idx = content.find("<!DOCTYPE")
+                    if start_idx == -1:
+                        start_idx = content.find("<html")
+
+                    # Find the end
+                    end_idx = content.rfind("</html>")
+                    if start_idx != -1 and end_idx != -1:
+                        content = content[start_idx:end_idx + 7]  # +7 for "</html>"
+
+                    # Inject chart HTML into LLM-generated HTML
+                    # Look for a container or body tag to insert charts
+                    chart_html = self._generate_chart_html(chart_data)
+
+                    # Try to inject after opening <body> tag or first <div class="container">
+                    if '<body>' in content:
+                        # Insert chart section after opening body tag
+                        chart_section = f'\n<section style="margin: 2rem 0;">\n<h2 style="color: #8B4513; text-align: center; margin-bottom: 1.5rem;">Birth Charts</h2>\n{chart_html}\n</section>\n'
+                        content = content.replace('<body>', f'<body>{chart_section}', 1)
+                    elif '<div class="container">' in content:
+                        # Insert at start of container
+                        chart_section = f'\n<section style="margin: 2rem 0;">\n<h2 style="color: #8B4513; text-align: center; margin-bottom: 1.5rem;">Birth Charts</h2>\n{chart_html}\n</section>\n'
+                        content = content.replace('<div class="container">', f'<div class="container">{chart_section}', 1)
+
+                    result["content"] = content.strip()
+                    logger.info(f"Extracted HTML report with charts: {len(content)} characters")
+                else:
+                    # LLM didn't generate HTML, use template fallback
+                    logger.warning("No HTML tags found in LLM response, using template fallback")
+
+                    import os
+                    from datetime import datetime
+
+                    template_path = os.path.join(
+                        os.path.dirname(os.path.dirname(__file__)),
+                        'templates',
+                        'vedic_report_template.html'
+                    )
+
+                    try:
+                        with open(template_path, 'r', encoding='utf-8') as f:
+                            template = f.read()
+
+                        # Get person name from chart data
+                        person_name = chart_data.get('birth_info', {}).get('name', 'Unknown')
+                        current_date = datetime.now().strftime('%B %d, %Y')
+
+                        # Generate chart HTML
+                        chart_html = self._generate_chart_html(chart_data)
+
+                        # Inject AI content and chart HTML into template
+                        html_content = template.format(
+                            name=person_name,
+                            chart_html=chart_html,
+                            ai_content=content,
+                            date=current_date
+                        )
+
+                        result["content"] = html_content
+                        logger.info(f"Generated HTML from template: {len(html_content)} characters")
+                    except Exception as template_error:
+                        logger.error(f"Error loading template: {template_error}")
+                        # If template fails, return raw content
+                        result["content"] = content
+
+                await self._log_audit(
+                    db, user_id, AuditAction.TEST, "html_report",
+                    provider=provider, model=model,
+                    success=True
+                )
+
+                # Update usage tracking (only if using user config)
+                if config:
+                    config.usage_today += 1
+                    config.last_used_at = datetime.utcnow()
+                    await db.commit()
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error generating HTML report: {e}", exc_info=True)
+            await self._log_audit(
+                db, user_id, AuditAction.TEST, "html_report",
+                provider=provider, model=model,
+                success=False, error_message=str(e)
+            )
+            return {
+                "success": False,
+                "error": f"Failed to generate HTML report: {str(e)}"
+            }
+
     async def generate_match_horoscope_analysis(
         self,
         db: AsyncSession,
@@ -1566,6 +1909,172 @@ Please analyze:
 7. **Strengths** - Natural harmonies and supportive factors
 
 Use traditional Vedic astrology principles including Guna Milan, Manglik Dosha, and planetary aspects."""
+
+    def _build_html_report_prompt(self, chart_data: Dict[str, Any]) -> str:
+        """
+        Build a comprehensive prompt for generating content for a Vedic horoscope report.
+
+        This prompt instructs the LLM to generate detailed astrological analysis
+        that will be injected into an HTML template.
+        """
+        prompt = """You are an expert Vedic astrologer. Generate a comprehensive, detailed Vedic astrology analysis for this birth chart.
+
+Write in a formal, professional style suitable for a traditional horoscope report.
+Use proper Vedic astrology terminology with Sanskrit terms.
+Be specific and detailed - this should be a complete 15-20 page report.
+
+"""
+
+        # Add birth info to prompt
+        if "birth_info" in chart_data:
+            birth_info = chart_data["birth_info"]
+            name = birth_info.get('name', 'Unknown')
+            date = birth_info.get('date', 'Unknown')
+            time = birth_info.get('time', 'Unknown')
+            location = birth_info.get('location_name', birth_info.get('location', 'Unknown'))
+
+            prompt += f"""
+BIRTH DETAILS:
+Name: {name}
+Date of Birth: {date}
+Time of Birth: {time}
+Place of Birth: {location}
+
+"""
+
+        # Add planetary positions
+        if "planets" in chart_data:
+            prompt += "PLANETARY POSITIONS:\n"
+            planets = chart_data["planets"]
+            if isinstance(planets, list):
+                for planet_data in planets:
+                    planet_name = planet_data.get('name', 'Unknown')
+                    sign = planet_data.get('sign', 'Unknown')
+                    house = planet_data.get('house', 'Unknown')
+                    longitude = planet_data.get('sidereal_longitude', planet_data.get('longitude', 0))
+                    nakshatra = planet_data.get('nakshatra', 'Unknown')
+                    prompt += f"  {planet_name}: {sign} ({longitude:.2f}°) - House {house}, {nakshatra}\n"
+            prompt += "\n"
+
+        # Add houses
+        if "houses" in chart_data:
+            prompt += "HOUSE CUSPS:\n"
+            houses = chart_data["houses"]
+            if isinstance(houses, list):
+                for house_data in houses:
+                    house_num = house_data.get('house', 'Unknown')
+                    sign = house_data.get('sign', 'Unknown')
+                    prompt += f"  House {house_num}: {sign}\n"
+            prompt += "\n"
+
+        prompt += """
+GENERATE A COMPREHENSIVE VEDIC ASTROLOGY ANALYSIS covering these sections:
+
+## 1. OVERVIEW & ASCENDANT
+- Explain the Ascendant (Lagna) sign and its significance
+- Describe the ruling planet (Lagna Lord) and its placement
+- Overall chart strength and major patterns
+
+## 2. PLANETARY ANALYSIS
+For each planet (Sun through Saturn, plus Rahu/Ketu):
+- Current house placement and sign
+- Dignities (exaltation, debilitation, own sign, friendly/enemy sign)
+- Key aspects and conjunctions
+- Specific effects on this person's life
+
+## 3. VIMSOTTARI DASHA SYSTEM
+- Calculate the current Mahadasha and Antardasha periods
+- Explain what these periods indicate
+- Predictions for current and upcoming dashas
+- Key timing for major life events
+
+## 4. YOGA ANALYSIS
+Calculate and explain yogas present in this chart:
+- Raja Yogas (combinations for success and power)
+- Dhana Yogas (wealth combinations)
+- Mahapurusha Yogas (great personality yogas)
+- Neecha Bhanga Raja Yoga (debilitation cancellation)
+- Any challenging yogas (Kemadruma, Sakata, etc.)
+
+## 5. HOUSE-BY-HOUSE ANALYSIS
+Detailed interpretation of all 12 houses:
+- 1st: Self, personality, physical body
+- 2nd: Wealth, family, speech
+- 3rd: Siblings, courage, communication
+- 4th: Mother, home, education, happiness
+- 5th: Children, intelligence, romance
+- 6th: Health, enemies, service
+- 7th: Marriage, partnerships, business
+- 8th: Longevity, inheritance, occult
+- 9th: Fortune, father, dharma, higher learning
+- 10th: Career, status, karma
+- 11th: Gains, friends, aspirations
+- 12th: Losses, spirituality, foreign lands
+
+## 6. LIFE AREAS IN DETAIL
+
+### Personality & Character
+Based on Ascendant, Moon, and Sun - 3-4 paragraphs
+
+### Mental & Emotional Nature
+Based on Moon, Mercury, and 4th house - 3-4 paragraphs
+
+### Education & Intelligence
+Based on Mercury, Jupiter, 4th and 5th houses - 2-3 paragraphs
+
+### Career & Profession
+Based on 10th house, Saturn, and Sun - 3-4 paragraphs including specific career recommendations
+
+### Wealth & Financial Prospects
+Based on 2nd, 11th houses, Jupiter, and wealth yogas - 3-4 paragraphs
+
+### Marriage & Relationships
+Based on 7th house, Venus, and 2nd house - 3-4 paragraphs including partner characteristics
+
+### Children & Progeny
+Based on 5th house and Jupiter - 2-3 paragraphs
+
+### Health & Vitality
+Based on Ascendant, 6th house, Mars - 3 paragraphs including specific health recommendations
+
+### Spirituality & Dharma
+Based on 9th, 12th houses, Jupiter, Ketu - 2-3 paragraphs
+
+### Travel & Foreign Connections
+Based on 12th, 9th houses and relevant planets - 2 paragraphs
+
+## 7. REMEDIAL MEASURES
+Specific, actionable remedies:
+- **Mantras**: Specific mantras for weak planets (with Sanskrit and transliteration)
+- **Gemstones**: Recommended stones with wearing instructions
+- **Charitable Acts**: Specific donations and timing
+- **Worship**: Deities to worship and days/times
+- **Lifestyle**: Daily practices and habits
+- **Fasting**: Days to fast for planetary strength
+
+## 8. CRITICAL PERIODS & PREDICTIONS
+- Most favorable periods in life (by dasha)
+- Challenging periods and how to navigate them
+- Best times for marriage, career changes, investments
+- Health alerts during specific planetary periods
+
+## 9. STRENGTHS & CHALLENGES SUMMARY
+- 5-6 major strengths in the chart
+- 5-6 main challenges or weaknesses
+- How to leverage strengths
+- How to mitigate challenges
+
+IMPORTANT:
+- Be SPECIFIC to this chart, not generic
+- Use actual planetary positions and aspects
+- Calculate real yogas present
+- Provide detailed analysis (15,000+ words total)
+- Use Sanskrit terms with English translations
+- Be professional and traditional in tone
+- Include specific timing and predictions
+"""
+
+        return prompt
 
     def _build_match_horoscope_prompt_template(self) -> str:
         """Build template for match horoscope prompt."""

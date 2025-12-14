@@ -5,13 +5,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Loader2, AlertCircle, RefreshCw, Download, Eye } from 'lucide-react';
+import { FileText, Loader2, AlertCircle, RefreshCw, Download, Eye, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { API_URL } from '@/lib/constants';
 import type { AiModuleMeta, AiModuleProps } from '@/lib/ai/types';
 import { HoroscopeReport, type HoroscopeReportData } from '@/components/horoscope/HoroscopeReport';
+import { HtmlReportViewer } from '@/components/horoscope/HtmlReportViewer';
 import { useAiReportCache } from '@/hooks/useAiReportCache';
 import { useRouter } from 'next/router';
 
@@ -51,9 +52,10 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
   const router = useRouter();
   const [interpretation, setInterpretation] = useState<string>('');
   const [reportData, setReportData] = useState<HoroscopeReportData | null>(null);
+  const [htmlContent, setHtmlContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [outputFormat, setOutputFormat] = useState<'markdown' | 'json'>('markdown');
+  const [outputFormat, setOutputFormat] = useState<'markdown' | 'json' | 'html'>('markdown');
   const [reportId, setReportId] = useState<string | null>(null);
 
   // Use the AI report cache hook
@@ -237,13 +239,65 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
     }
   };
 
+  // Handle HTML report generation
+  const generateHtmlReport = async () => {
+    if (!chartData || !user) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/ai/generate-html-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify({
+          chart_data: chartData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          if (typeof errorData.detail === 'string') {
+            setError(errorData.detail);
+          } else if (Array.isArray(errorData.detail)) {
+            setError(errorData.detail.map((e: any) => e.msg).join(', '));
+          } else {
+            setError('Failed to generate HTML report');
+          }
+        } else {
+          setError(`Server error: ${response.status}`);
+        }
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.html_content) {
+        setHtmlContent(result.html_content);
+        setOutputFormat('html');
+        setReportId(result.report_id || null);
+        console.log('HTML report generated successfully');
+      } else {
+        setError('Failed to generate HTML report');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle view all reports
   const handleViewReports = () => {
     router.push('/my-reports');
   };
 
   // Check if we have any existing report
-  const hasExistingReport = !!(reportData || interpretation);
+  const hasExistingReport = !!(reportData || interpretation || htmlContent);
 
   // Debug logging for render
   console.log('=== Render Debug ===');
@@ -293,6 +347,16 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {hasExistingReport ? 'Regenerate' : 'Generate Report'}
           </Button>
+          <Button
+            onClick={generateHtmlReport}
+            disabled={loading}
+            variant="default"
+            size="sm"
+            className="bg-saffron-500 hover:bg-saffron-600"
+          >
+            <Globe className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Generate HTML Report
+          </Button>
         </div>
       </div>
 
@@ -318,6 +382,13 @@ export default function ChartInterpretationModule({ chartData, user, onClose }: 
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-saffron-500" />
               <span className="ml-3 text-gray-600">Analyzing your chart...</span>
+            </div>
+          ) : htmlContent && outputFormat === 'html' ? (
+            <div className="min-h-[600px]">
+              <HtmlReportViewer
+                htmlContent={htmlContent}
+                personName={chartData?.birth_info?.name || 'User'}
+              />
             </div>
           ) : reportData && outputFormat === 'json' ? (
             <>
