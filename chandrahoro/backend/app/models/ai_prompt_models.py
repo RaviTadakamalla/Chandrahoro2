@@ -135,127 +135,79 @@ DEFAULT_PROMPTS = {
     AiModuleType.CHART_INTERPRETATION: {
         "name": "AI Chart Interpretation",
         "description": "Comprehensive birth chart interpretation covering personality, life path, and key themes",
-        "prompt": """You are an expert Vedic astrologer. Generate a comprehensive horoscope report in structured JSON format that will be used to create a detailed HTML report.
+        "prompt": """You are an expert Vedic astrologer. Generate a beautifully formatted HTML horoscope report that can be directly displayed in a browser and downloaded.
 
 Chart Data:
 {chart_data}
 
-Generate a complete analysis with the following structure (return as valid JSON):
+Generate a complete, self-contained HTML document with the following specifications:
 
-{{
-  "birth_details": {{
-    "name": "string",
-    "gender": "string",
-    "date_of_birth": "string (DD Month YYYY format)",
-    "time_of_birth": "string (HH:MM AM/PM IST)",
-    "place_of_birth": "string",
-    "lagna": "string (Sign name with degree)",
-    "rashi": "string (Moon sign)",
-    "nakshatra": "string (Nakshatra name with pada)"
-  }},
-  "planetary_positions": [
-    {{
-      "planet": "string (e.g., Sun, Moon, Mars)",
-      "longitude": "string (degrees)",
-      "sign": "string",
-      "degree_in_sign": "string",
-      "house": "string (e.g., 1st, 2nd)",
-      "nakshatra": "string",
-      "pada": "number",
-      "dignity": "string (Own/Exalted/Debilitated/Friendly/Enemy/Neutral)",
-      "navamsa": "string",
-      "karaka": "string (AK/AmK/BK/MK/PK/GK/DK or -)",
-      "is_retrograde": boolean
-    }}
-  ],
-  "vimsottari_dasha": {{
-    "moon_nakshatra": "string",
-    "nakshatra_lord": "string",
-    "mahadashas": [
-      {{
-        "planet": "string",
-        "duration_years": number,
-        "start_date": "string (Mon YYYY)",
-        "end_date": "string (Mon YYYY)",
-        "position": "string (house and karaka)",
-        "status": "string (Completed/Current/Upcoming)",
-        "is_current": boolean
-      }}
-    ],
-    "current_antardashas": [
-      {{
-        "period": "string (e.g., Saturn-Mercury)",
-        "start_date": "string",
-        "end_date": "string",
-        "duration": "string",
-        "is_current": boolean
-      }}
-    ]
-  }},
-  "yoga_analysis": [
-    {{
-      "name": "string (e.g., Gajakesari Yoga)",
-      "planets_involved": "string (description of planetary combination)",
-      "interpretation": "string (detailed explanation of effects)"
-    }}
-  ],
-  "house_analysis": [
-    {{
-      "house_number": "string (e.g., 1st House)",
-      "sign": "string",
-      "planets": "string (comma-separated or 'Empty')",
-      "lord_position": "string (where house lord is placed)",
-      "interpretation": "string (detailed analysis)"
-    }}
-  ],
-  "life_areas": {{
-    "personality": "string (detailed analysis based on Ascendant, Moon, Jupiter aspects)",
-    "education_career": "string (based on 4th, 5th, 10th houses, Jupiter, Mercury)",
-    "wealth": "string (based on 2nd, 11th houses, dhana yogas)",
-    "marriage": "string (based on 7th house, Venus, Darakaraka)",
-    "current_period": "string (analysis of current Mahadasha)",
-    "favorable_periods": "string (list of good and cautious periods)"
-  }},
-  "remedies": {{
-    "primary_planet": "string (planet name)",
-    "primary_remedy": "string (mantra, day, practices)",
-    "secondary_planet": "string",
-    "secondary_remedy": "string",
-    "general_practices": "string (meditation, temple visits, etc.)",
-    "gemstones": {{
-      "primary": "string (gemstone, metal, finger, day)",
-      "secondary": "string"
-    }}
-  }},
-  "summary": {{
-    "ascendant": "string",
-    "moon_sign": "string",
-    "nakshatra": "string",
-    "navamsa_lagna": "string",
-    "atmakaraka": "string",
-    "darakaraka": "string",
-    "current_dasha": "string",
-    "major_yogas": "string (comma-separated)",
-    "assessments": [
-      {{
-        "category": "string (e.g., Strongest Planet, Career, Wealth)",
-        "rating": "string (Strong/Good/Moderate/Weak)",
-        "key_factors": "string"
-      }}
-    ]
-  }}
-}}
+1. **HTML Structure**: Return ONLY the HTML content (no markdown, no code blocks, no explanations)
+2. **Styling**: Include embedded CSS for beautiful formatting
+3. **Responsive**: Mobile-friendly design
+4. **Professional**: Clean, readable layout with proper typography
+5. **Printable**: Optimized for PDF generation
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vedic Astrology Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 3px solid #8B4513; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #8B4513; font-size: 32px; margin-bottom: 10px; }
+        .birth-info { background: #FFF8DC; padding: 20px; border-left: 4px solid #DAA520; margin-bottom: 30px; }
+        .birth-info table { width: 100%; }
+        .birth-info td { padding: 8px; }
+        .birth-info td:first-child { font-weight: bold; width: 180px; color: #8B4513; }
+        h2 { color: #8B4513; border-bottom: 2px solid #DAA520; padding-bottom: 10px; margin: 30px 0 15px 0; font-size: 24px; }
+        h3 { color: #A0522D; margin: 20px 0 10px 0; font-size: 18px; }
+        .planet-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .planet-table th { background: #8B4513; color: white; padding: 12px; text-align: left; }
+        .planet-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .planet-table tr:hover { background: #FFF8DC; }
+        .yoga-card { background: #F0E68C; padding: 15px; margin: 15px 0; border-left: 4px solid #DAA520; border-radius: 4px; }
+        .yoga-card h4 { color: #8B4513; margin-bottom: 8px; }
+        .house-section { margin: 15px 0; padding: 15px; background: #FFF8DC; border-radius: 4px; }
+        .life-area { margin: 20px 0; padding: 15px; background: #F5DEB3; border-radius: 4px; }
+        .remedy-box { background: #FFE4B5; padding: 20px; margin: 20px 0; border: 2px solid #DAA520; border-radius: 8px; }
+        .dasha-current { background: #90EE90; padding: 3px 8px; border-radius: 3px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #DAA520; color: #666; font-size: 14px; }
+        @media print { body { background: white; } .container { box-shadow: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Fill in your complete interpretation here -->
+    </div>
+</body>
+</html>
 
 IMPORTANT INSTRUCTIONS:
-1. Use actual chart data provided to fill all fields accurately
-2. Calculate Jaimini Karakas (AK, AmK, BK, MK, PK, GK, DK) based on planetary degrees
-3. Identify all major yogas present in the chart (Gajakesari, Budha-Aditya, Dhana, Raja, etc.)
-4. Provide specific, actionable interpretations based on classical Vedic astrology principles
-5. Include Sanskrit terms where appropriate with English translations
-6. Be compassionate and constructive in all interpretations
-7. Return ONLY valid JSON, no additional text or markdown formatting
-8. Ensure all dates, degrees, and positions are accurate from the chart data""",
-        "output_format": "json",
+1. Return ONLY the complete HTML document (no markdown code blocks, no explanations)
+2. Fill in ALL sections with actual chart data from {chart_data}
+3. Include these sections:
+   - Header with "Vedic Astrology Report" title
+   - Birth Information table (name, DOB, time, location, ascendant, moon sign, nakshatra)
+   - Planetary Positions table (planet, sign, degree, house, nakshatra, dignity, navamsa, karaka, retrograde)
+   - Vimsottari Dasha timeline with current period highlighted
+   - Yoga Analysis with detailed cards for each yoga identified
+   - House-by-House Analysis (all 12 houses)
+   - Life Areas (Personality, Career, Wealth, Marriage, Health, Current Period, Favorable Times)
+   - Remedial Measures (mantras, gemstones, practices)
+   - Summary and Key Assessments
+4. Calculate and display Jaimini Karakas (AK, AmK, BK, MK, PK, GK, DK)
+5. Identify major yogas (Gajakesari, Budha-Aditya, Dhana, Raja, etc.)
+6. Use actual planetary degrees, positions, and aspects from the chart data
+7. Be specific, compassionate, and constructive
+8. Include Sanskrit terms with English translations
+9. Make it visually appealing and professional
+10. Ensure the HTML is self-contained and ready to display/download""",
+        "output_format": "html",
         "variables": ["chart_data", "birth_info", "planets", "houses", "aspects", "dashas", "yogas"]
     },
     AiModuleType.DASHA_PREDICTIONS: {

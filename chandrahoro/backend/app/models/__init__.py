@@ -14,6 +14,9 @@ from app.models.llm_models import (
 from app.models.ai_prompt_models import (
     AiPromptConfig, AiPromptVersion, AiModuleType, PromptScope, DEFAULT_PROMPTS
 )
+from app.models.ai_report_models import (
+    AiGeneratedReport, ReportShare, ReportType, ReportStatus
+)
 from app.models.subscription_models import Subscription, SubscriptionTier, SubscriptionStatus
 from app.models.cache_models import ChartCache, CacheType, UserRequest
 
@@ -67,6 +70,11 @@ __all__ = [
     "AiModuleType",
     "PromptScope",
     "DEFAULT_PROMPTS",
+    # AI Reports
+    "AiGeneratedReport",
+    "ReportShare",
+    "ReportType",
+    "ReportStatus",
     # Subscription & Caching
     "Subscription",
     "SubscriptionTier",
