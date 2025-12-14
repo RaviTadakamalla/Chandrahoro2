@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from app.services.location_service import get_location_service, LocationResult
 from app.core.exceptions import ValidationError, ExternalAPIError

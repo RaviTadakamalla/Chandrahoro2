@@ -6,7 +6,7 @@ Provides chart interpretation and Q&A functionality.
 import logging
 import os
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -201,7 +201,7 @@ async def interpret_chart(
             "report_id": report_id  # Include report ID in response
         }
     
-    except HTTPException:
+    except (ConfigurationError, ExternalAPIError, DatabaseError):
         raise
     except Exception as e:
         logger.error(f"Error generating interpretation: {e}", exc_info=True)
@@ -282,7 +282,7 @@ async def chat_about_chart(
             "timestamp": result.get("timestamp")
         }
 
-    except HTTPException:
+    except (ConfigurationError, ExternalAPIError, DatabaseError):
         raise
     except Exception as e:
         logger.error(f"Error processing chat: {e}")
@@ -487,13 +487,12 @@ async def analyze_compatibility(
             error_msg = result.get('error', 'Unknown error')
             # Check for encryption key errors
             if 'InvalidToken' in error_msg or 'decrypt' in error_msg.lower():
-                raise HTTPException(
-                    status_code=400,
-                    detail="Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
+                raise ConfigurationError(
+                    "Your API key needs to be re-saved. The encryption key has changed. Please go to AI Settings and re-save your API key."
                 )
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to generate compatibility analysis: {error_msg}"
+            raise ExternalAPIError(
+                f"Failed to generate compatibility analysis: {error_msg}",
+                service="LLM Service"
             )
 
         return {
@@ -506,7 +505,7 @@ async def analyze_compatibility(
             "key_insights": result.get("key_insights")
         }
 
-    except HTTPException:
+    except (ConfigurationError, ExternalAPIError, DatabaseError):
         raise
     except Exception as e:
         logger.error(f"Error generating compatibility analysis: {e}", exc_info=True)
@@ -692,7 +691,7 @@ async def analyze_match_horoscope(
 
         return result
 
-    except HTTPException:
+    except (ConfigurationError, ExternalAPIError, DatabaseError):
         raise
     except Exception as e:
         logger.error(f"Error generating match horoscope analysis: {e}", exc_info=True)
